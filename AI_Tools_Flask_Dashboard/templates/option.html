@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+    <!-- Breadcrumbs -->
+    {% include 'breadcrumb.html' %}
+
+    <h1 class="mt-4">{{ page_title }}</h1>
+    <p>This is the content for {{ page_title }}.</p>
+{% endblock %}

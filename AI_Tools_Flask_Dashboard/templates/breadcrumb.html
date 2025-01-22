@@ -1,0 +1,12 @@
+{% if breadcrumb %}
+<div class="breadcrumb-container active">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            {% for crumb in breadcrumb.split(' / ')[1:] %}
+                <li class="breadcrumb-item active" aria-current="page">{{ crumb }}</li>
+            {% endfor %}
+        </ol>
+    </nav>
+</div>
+{% endif %}
