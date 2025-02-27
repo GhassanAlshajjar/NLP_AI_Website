@@ -3,53 +3,53 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-    <!-- Breadcrumbs -->
-    {% include 'breadcrumb.html' %}
+<!-- Breadcrumbs -->
+{% include 'breadcrumb.html' %}
 
-    <h1 class="mt-4">Natural Language Processing</h1>
-    <p>Select an option below to get started.</p>
+<h1 class="mt-4">Natural Language Processing</h1>
+<p>Select an option below to get started.</p>
 
-    <div class="dashboard-buttons">
-        <!-- Button 1: Document Analysis (Plagiarism Checker) -->
-        <a href="/option1" class="dashboard-card text-decoration-none">
-            <img src="{{ url_for('static', filename='Images/document.png') }}" alt="Document Analysis">
-            <h5>Document Analysis</h5>
-            <p>Compare documents and check for Plagiarism.</p>
-        </a>
+<div class="dashboard-buttons">
+    <!-- Button 1: Document Analysis (Plagiarism Checker) -->
+    <a href="{{ url_for('routes.document_analysis') }}" class="dashboard-card text-decoration-none">
+        <img src="{{ url_for('static', filename='Images/document.png') }}" alt="Document Analysis">
+        <h5>Document Analysis</h5>
+        <p>Compare documents and check for Plagiarism.</p>
+    </a>
 
-        <!-- Button 2: Summary (Summarize Text) -->
-        <a href="/option2" class="dashboard-card text-decoration-none">
-            <img src="{{ url_for('static', filename='Images/summary-check.png') }}" alt="Summary Tool">
-            <h5>Text Summarizer</h5>
-            <p>Generate concise summaries from lengthy texts.</p>
-        </a>
+    <!-- Button 2: Summary (Summarize Text) -->
+    <a href="/option2" class="dashboard-card text-decoration-none">
+        <img src="{{ url_for('static', filename='Images/summary-check.png') }}" alt="Summary Tool">
+        <h5>Text Summarizer</h5>
+        <p>Generate concise summaries from lengthy texts.</p>
+    </a>
 
-        <!-- Button 3: Machine Learning Models -->
-        <a href="/option3" class="dashboard-card text-decoration-none">
-            <img src="{{ url_for('static', filename='Images/machine-learning.png') }}" alt="Machine Learning">
-            <h5>Machine Learning Models</h5>
-            <p>Train and evaluate machine learning models.</p>
-        </a>
+    <!-- Button 3: Machine Learning Models -->
+    <a href="/option3" class="dashboard-card text-decoration-none">
+        <img src="{{ url_for('static', filename='Images/machine-learning.png') }}" alt="Machine Learning">
+        <h5>Machine Learning Models</h5>
+        <p>Train and evaluate machine learning models.</p>
+    </a>
 
-        <!-- Button 4: Keep the same -->
-        <a href="/option4" class="dashboard-card text-decoration-none">
-            <img src="https://via.placeholder.com/60" alt="Option 4">
-            <h5>Option 4</h5>
-            <p>Short description for option 4.</p>
-        </a>
+    <!-- Button 4: Keep the same -->
+    <a href="/option4" class="dashboard-card text-decoration-none">
+        <img src="https://via.placeholder.com/60" alt="Option 4">
+        <h5>Option 4</h5>
+        <p>Short description for option 4.</p>
+    </a>
 
-        <!-- Button 5: Keep the same -->
-        <a href="/option5" class="dashboard-card text-decoration-none">
-            <img src="https://via.placeholder.com/60" alt="Option 5">
-            <h5>Option 5</h5>
-            <p>Short description for option 5.</p>
-        </a>
+    <!-- Button 5: Keep the same -->
+    <a href="/option5" class="dashboard-card text-decoration-none">
+        <img src="https://via.placeholder.com/60" alt="Option 5">
+        <h5>Option 5</h5>
+        <p>Short description for option 5.</p>
+    </a>
 
-        <!-- Button 6: Chatbot -->
-        <a href="/option6" class="dashboard-card text-decoration-none">
-            <img src="{{ url_for('static', filename='Images/chatbot.png') }}" alt="Chatbot">
-            <h5>AI Chatbot</h5>
-            <p>Interact with an intelligent AI chatbot for assistance.</p>
-        </a>
-    </div>
+    <!-- Button 6: Chatbot -->
+    <a href="/option6" class="dashboard-card text-decoration-none">
+        <img src="{{ url_for('static', filename='Images/chatbot.png') }}" alt="Chatbot">
+        <h5>AI Chatbot</h5>
+        <p>Interact with an intelligent AI chatbot for assistance.</p>
+    </a>
+</div>
 {% endblock %}

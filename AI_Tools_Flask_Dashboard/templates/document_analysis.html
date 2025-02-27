@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Document Analysis{% endblock %}
+{% block content %}
+{% include 'breadcrumb.html' %}
+
+<h1 class="mt-4">Document Analysis</h1>
+<p>Upload one or two documents to compare their similarity and check for plagiarism.</p>
+
+<form method="POST" enctype="multipart/form-data" action="{{ url_for('routes.document_analysis') }}">
+    <div class="mb-3">
+        <label for="doc1" class="form-label">Upload First Document</label>
+        <input type="file" class="form-control" id="doc1" name="doc1" required>
+    </div>
+    <div class="mb-3">
+        <label for="doc2" class="form-label">Upload Second Document (Optional)</label>
+        <input type="file" class="form-control" id="doc2" name="doc2">
+    </div>
+
+    <p class="text-muted">
+        📌 <strong>Supported formats:</strong> .txt, .pdf, .docx<br>
+        🚀 <strong>Max file size:</strong> 5MB
+    </p>
+
+    <button type="submit" class="btn btn-primary w-100">Compare Documents</button>
+</form>
+
+{% if similarity_score is not none %}
+<div class="mt-5">
+    <ul class="nav nav-tabs">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#similarity">📄 Document Similarity</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#plagiarism">🌐 Plagiarism Check</button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Document Similarity Tab -->
+        <div class="tab-pane fade show active p-3" id="similarity">
+            <h4>Results</h4>
+            <p><strong>Similarity Score:</strong> {{ similarity_score | round(2) }}%</p>
+
+            <h5>Document Details</h5>
+            <ul>
+                {% if doc1_info %}
+                <li><strong>{{ doc1_info.name }}</strong> - {{ doc1_info.size }} KB</li>
+                {% endif %}
+                {% if doc2_info %}
+                <li><strong>{{ doc2_info.name }}</strong> - {{ doc2_info.size }} KB</li>
+                {% endif %}
+            </ul>
+
+            <div class="row">
+                <!-- Similarity Breakdown Chart -->
+                <div class="col-md-6">
+                    <h5 class="mb-3">Similarity Breakdown</h5>
+                    <img src="data:image/png;base64,{{ similarity_chart }}" class="img-fluid mt-3">
+                </div>
+                <!-- Word Cloud -->
+                <div class="col-md-6">
+                    <h5 class="mb-3">Word Cloud</h5>
+                    <img src="data:image/png;base64,{{ wordcloud1 }}" class="img-thumbnail">
+                </div>
+            </div>
+
+            <!-- Word Frequency Chart -->
+            {% if word_freq_chart %}
+            <div class="mt-4">
+                <h5>Word Match Analysis</h5>
+                <img src="data:image/png;base64,{{ word_freq_chart }}" class="img-fluid">
+            </div>
+            {% else %}
+            <p class="mt-4 text-muted">⚠️ No significant word matches detected.</p>
+            {% endif %}
+
+            <!-- Detailed Comparison -->
+            <div class="mt-4">
+                <h5>Detailed Comparison</h5>
+                <ul>
+                    <li><strong>Total Words in Doc 1:</strong> {{ word_comparison.total_words_doc1 }}</li>
+                    <li><strong>Total Words in Doc 2:</strong> {{ word_comparison.total_words_doc2 }}</li>
+                    <li><strong>Common Words:</strong> {{ word_comparison.common_words }}</li>
+                    <li><strong>Unique Words (Doc 1):</strong> {{ word_comparison.unique_words_doc1 }}</li>
+                    <li><strong>Unique Words (Doc 2):</strong> {{ word_comparison.unique_words_doc2 }}</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Plagiarism Check Tab -->
+        <div class="tab-pane fade p-3" id="plagiarism">
+            <h4>Plagiarism Check</h4>
+            <p><strong>Plagiarism Detected:</strong> {{ plagiarism_percentage }}%</p>
+            <p><strong>Most Matched Source:</strong> 
+                {% if most_matched_source %}
+                <a href="{{ most_matched_source }}" target="_blank">{{ most_matched_source }}</a>
+                {% else %}
+                <span class="text-muted">No exact match found.</span>
+                {% endif %}
+            </p>
+
+            <!-- Plagiarism Search Results -->
+            {% if online_results %}
+            <ul class="list-group">
+                {% for result in online_results %}
+                <li class="list-group-item">
+                    <a href="{{ result.link }}" target="_blank">{{ result.title }}</a><br>
+                    <small>{{ result.snippet }}</small>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted mt-3">✅ No plagiarism detected in online sources.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
