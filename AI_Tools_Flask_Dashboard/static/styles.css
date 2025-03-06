@@ -191,3 +191,9 @@ footer {
         padding: 8px 10px;
     }
 }
+
+.pascal-background {
+    background-color: #DCDCDC;
+    padding: 20px;
+    border-radius: 10px;
+}

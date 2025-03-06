@@ -9,4 +9,4 @@ def calculate_similarity(text1, text2):
     vectors = vectorizer.toarray()
 
     similarity = cosine_similarity([vectors[0]], [vectors[1]])[0][0]
-    return similarity * 100  # Convert to percentage
+    return similarity * 100

@@ -5,110 +5,168 @@ from utils.web_plagiarism_checker import search_web_plagiarism
 from utils.document_analysis_visualization import (
     generate_word_cloud_base64,
     generate_similarity_pie_chart_base64,
-    generate_word_frequency_chart
+    generate_word_frequency_chart,
+    generate_sentence_similarity_chart_base64
 )
 from utils.document_analysis import extract_text
 
 routes = Blueprint('routes', __name__)
 
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-ALLOWED_EXTENSIONS = {"txt", "pdf", "docx"}
-
-
 @routes.route("/")
 def home():
     return render_template("dashboard.html", page_title="Home", breadcrumb=None)
+
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+ALLOWED_EXTENSIONS = {"txt", "pdf", "docx"}
 
 def is_valid_file(file):
     return file and "." in file.filename and file.filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @routes.route("/document-analysis", methods=["GET", "POST"])
 def document_analysis():
-    similarity_score = None
-    online_results = []
-    plagiarism_percentage = 0
-    most_matched_source = None
+    print("🔍 [DEBUG] Entered document_analysis route")
+
+    breadcrumb = "Home / Document Analysis"
+
+    if request.args.get("reset"):
+        return render_template("document_analysis.html", page_title="Document Analysis", breadcrumb=breadcrumb)
+
+    similarity_score = 0
+    online_results_doc1 = []
+    online_results_doc2 = []
+    plagiarism_percentage_doc1 = 0
+    plagiarism_percentage_doc2 = 0
+    most_matched_source_doc1 = None
+    most_matched_source_doc2 = None
     doc1_info = None
     doc2_info = None
     wordcloud1 = None
     wordcloud2 = None
     similarity_chart = None
     word_freq_chart = None
+    sentence_similarity_chart = None
     word_comparison = {}
+    background_style = ""
 
     if request.method == "POST":
+        print("🔍 [DEBUG] Detected POST request")
+
         doc1 = request.files.get("doc1")
         doc2 = request.files.get("doc2")
 
-        # ✅ Validate if a file is uploaded
         if not doc1 and not doc2:
+            print("❌ [DEBUG] No document uploaded")
             flash("Please upload at least one document.", "danger")
-            return render_template("document_analysis.html", page_title="Document Analysis")
+            return render_template("document_analysis.html", page_title="Document Analysis", breadcrumb=breadcrumb)
 
-        # ✅ Validate file type & size
-        total_size = request.content_length or 0  # Ensure it is not None
+        total_size = request.content_length or 0
         if total_size > MAX_FILE_SIZE:
+            print("❌ [DEBUG] File size too large")
             flash("Total file size exceeds the 5MB limit.", "danger")
-            return render_template("document_analysis.html", page_title="Document Analysis")
+            return render_template("document_analysis.html", page_title="Document Analysis", breadcrumb=breadcrumb)
 
         if doc1 and not is_valid_file(doc1):
+            print(f"❌ [DEBUG] Invalid file type: {doc1.filename}")
             flash(f"Invalid file type for {doc1.filename}. Only .txt, .pdf, .docx allowed.", "danger")
-            return render_template("document_analysis.html", page_title="Document Analysis")
+            return render_template("document_analysis.html", page_title="Document Analysis", breadcrumb=breadcrumb)
 
         if doc2 and not is_valid_file(doc2):
+            print(f"❌ [DEBUG] Invalid file type: {doc2.filename}")
             flash(f"Invalid file type for {doc2.filename}. Only .txt, .pdf, .docx allowed.", "danger")
-            return render_template("document_analysis.html", page_title="Document Analysis")
+            return render_template("document_analysis.html", page_title="Document Analysis", breadcrumb=breadcrumb)
 
-        # ✅ Extract document information
+        text1, text2 = "", ""
+
         if doc1:
             doc1.seek(0)
             text1 = extract_text(doc1)
             doc1.seek(0)
-            doc1_info = {"name": doc1.filename, "size": round(len(text1) / 1024, 2)}
+            word_count1 = len(text1.split())
+            file_size1 = round(len(text1.encode('utf-8')) / 1024, 2)
+            doc1_info = {"name": doc1.filename, "word_count": word_count1, "size": file_size1}
+            print(f"✅ [DEBUG] Extracted text1: {len(text1.split())} words")
 
         if doc2:
             doc2.seek(0)
             text2 = extract_text(doc2)
             doc2.seek(0)
-            doc2_info = {"name": doc2.filename, "size": round(len(text2) / 1024, 2)}
+            word_count2 = len(text2.split())
+            file_size2 = round(len(text2.encode('utf-8')) / 1024, 2)
+            doc2_info = {"name": doc2.filename, "word_count": word_count2, "size": file_size2}
+            print(f"✅ [DEBUG] Extracted text2: {len(text2.split())} words")
 
-        # ✅ If both documents are provided → Compare them
         if doc1 and doc2:
+            print("🔍 [DEBUG] Running document similarity check")
             similarity_score, extracted_text1, extracted_text2, word_comparison = compare_documents(doc1, doc2)
 
             wordcloud1 = generate_word_cloud_base64(extracted_text1)
             wordcloud2 = generate_word_cloud_base64(extracted_text2)
             similarity_chart = generate_similarity_pie_chart_base64(similarity_score)
             word_freq_chart = generate_word_frequency_chart(extracted_text1, extracted_text2)
+            sentence_similarity_chart = generate_sentence_similarity_chart_base64(extracted_text1, extracted_text2)
 
-        # ✅ If only one document is uploaded → Run plagiarism check
-        if doc1 and not doc2:
-            extracted_text1 = extract_text(doc1)
-            wordcloud1 = generate_word_cloud_base64(extracted_text1)
-            
-            api_key = "AIzaSyAekjz6NytWtrJHsCeo5jJSlIwgDLjEFFM"
-            cx = "90b789512521f489e"
-            online_results = search_web_plagiarism(extracted_text1, api_key, cx)
+        if doc1:
+            try:
+                api_key = "AIzaSyAekjz6NytWtrJHsCeo5jJSlIwgDLjEFFM"
+                cx = "90b789512521f489e"
+                print("🔍 [DEBUG] Calling search_web_plagiarism for Document 1...")
+                online_results_doc1 = search_web_plagiarism(text1, api_key, cx)
+                print(f"🔍 [DEBUG] Online Results for Doc 1: {len(online_results_doc1)}")
+            except Exception as e:
+                print(f"❌ Plagiarism API Error (Doc 1): {str(e)}")
 
-        # ✅ Calculate plagiarism percentage & most matched source if results exist
-        if online_results:
-            plagiarism_percentage = round(len(online_results) * 10, 2)
-            most_matched_source = online_results[0]['link']
+        if doc2:
+            try:
+                api_key = "AIzaSyAekjz6NytWtrJHsCeo5jJSlIwgDLjEFFM"
+                cx = "90b789512521f489e"
+                print("🔍 [DEBUG] Calling search_web_plagiarism for Document 2...")
+                online_results_doc2 = search_web_plagiarism(text2, api_key, cx)
+                print(f"🔍 [DEBUG] Online Results for Doc 2: {len(online_results_doc2)}")
+            except Exception as e:
+                print(f"❌ Plagiarism API Error (Doc 2): {str(e)}")
+
+        if online_results_doc1:
+            total_words_doc1 = len(text1.split())
+            matched_words_doc1 = sum(len(result["snippet"].split()) for result in online_results_doc1)
+
+            plagiarism_percentage_doc1 = round((matched_words_doc1 / total_words_doc1) * 100, 2) if total_words_doc1 else 0
+            plagiarism_percentage_doc1 = min(plagiarism_percentage_doc1, 100)
+
+            most_matched_source_doc1 = online_results_doc1[0]['link'] if online_results_doc1 else None
+            print(f"✅ [DEBUG] Plagiarism Score (Doc 1): {plagiarism_percentage_doc1}%")
+
+        if online_results_doc2:
+            total_words_doc2 = len(text2.split())
+            matched_words_doc2 = sum(len(result["snippet"].split()) for result in online_results_doc2)
+
+            plagiarism_percentage_doc2 = round((matched_words_doc2 / total_words_doc2) * 100, 2) if total_words_doc2 else 0
+            plagiarism_percentage_doc2 = min(plagiarism_percentage_doc2, 100)
+
+            most_matched_source_doc2 = online_results_doc2[0]['link'] if online_results_doc2 else None
+            print(f"✅ [DEBUG] Plagiarism Score (Doc 2): {plagiarism_percentage_doc2}%")
+
+        background_style = "background-color: #DCDCDC; padding: 20px; border-radius: 10px;"
 
     return render_template(
         "document_analysis.html",
         page_title="Document Analysis",
+        breadcrumb=breadcrumb, 
         similarity_score=similarity_score,
-        online_results=online_results,
-        plagiarism_percentage=plagiarism_percentage,
-        most_matched_source=most_matched_source,
+        online_results_doc1=online_results_doc1,
+        online_results_doc2=online_results_doc2,
+        plagiarism_percentage_doc1=plagiarism_percentage_doc1,
+        plagiarism_percentage_doc2=plagiarism_percentage_doc2,
+        most_matched_source_doc1=most_matched_source_doc1,
+        most_matched_source_doc2=most_matched_source_doc2,
         doc1_info=doc1_info,
         doc2_info=doc2_info,
         wordcloud1=wordcloud1,
         wordcloud2=wordcloud2,
         similarity_chart=similarity_chart,
         word_freq_chart=word_freq_chart,
-        word_comparison=word_comparison
+        sentence_similarity_chart=sentence_similarity_chart,
+        word_comparison=word_comparison,
+        background_style=background_style
     )
 
 @routes.route("/option<int:option_id>")
@@ -138,13 +196,11 @@ def login():
         email = request.form.get("email")
         password = request.form.get("password")
 
-        # Check for missing fields
         if not email or not password:
             flash("Email and password are required.", "danger")
             return render_template("login.html", page_title="Login")
 
         try:
-            # Simulate Firebase login (password verification must be done client-side)
             user = auth.get_user_by_email(email)
             session['user_id'] = user.uid
             session['email'] = user.email
