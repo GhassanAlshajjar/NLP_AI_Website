@@ -1,24 +1,101 @@
 {% extends 'base.html' %}
 
-{% block title %}Profile - NLP App{% endblock %}
+{% block title %}Settings - NLP App{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
-    <h2>Profile Settings</h2>
-    <form method="POST">
-        <div class="mb-3">
-            <label for="username" class="form-label">Username</label>
-            <input type="text" class="form-control" id="username" name="username" value="{{ session.get('username') }}" required>
+    <h2 class="mb-4">Settings</h2>
+
+    <ul class="nav nav-tabs" id="settingsTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile"
+                type="button" role="tab">
+                Profile
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button"
+                role="tab">
+                Uploaded Files
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button"
+                role="tab">
+                Security
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-4" id="settingsTabsContent">
+
+        <!-- Profile Settings Tab -->
+        <div class="tab-pane fade show active" id="profile" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Profile Information</h5>
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username"
+                                value="{{ session.get('username') }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                value="{{ session.get('email') }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div class="mb-3">
-            <label for="email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="email" name="email" value="{{ session.get('email') }}" required>
+
+        <!-- Uploaded Files Tab -->
+        <div class="tab-pane fade" id="files" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Uploaded Files</h5>
+                    <p class="text-muted">Your uploaded files history (Cloudinary integration coming soon).</p>
+
+                    <div class="list-group">
+                        {% if user_data.get("uploaded_files") %}
+                        {% for file in user_data.get("uploaded_files") %}
+                        <div class="list-group-item">
+                            {{ file.name }} ({{ file.size }} KB) - Uploaded on {{ file.upload_date }}
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="list-group-item">No files uploaded yet.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="mb-3">
-            <label for="password" class="form-label">New Password (Leave blank to keep current)</label>
-            <input type="password" class="form-control" id="password" name="password">
+
+        <!-- Security & 2FA Tab -->
+        <div class="tab-pane fade" id="security" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Security Settings</h5>
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="password" name="password">
+                        </div>
+
+                        <!-- 2FA Toggle -->
+                        <div class="form-check form-switch d-flex align-items-center">
+                            <input class="form-check-input me-2" type="checkbox" id="2fa" name="2fa" {% if
+                                user_data.get('2fa_enabled') %} checked {% endif %}>
+                            <label class="form-check-label" for="2fa">Enable Two-Factor Authentication</label>
+                        </div>
+
+                        <button type="submit" class="btn btn-danger mt-3">Update Security</button>
+                    </form>
+                </div>
+            </div>
         </div>
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-    </form>
+    </div>
 </div>
 {% endblock %}

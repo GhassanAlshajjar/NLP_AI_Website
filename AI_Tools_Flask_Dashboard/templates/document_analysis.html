@@ -24,121 +24,173 @@
     <button type="submit" class="btn btn-primary w-100">Compare Documents</button>
 </form>
 
-{% if similarity_score is not none %}
+{% if similarity_score is not none and similarity_score > 0 %}
 <div class="mt-5 pascal-background">
-    <ul class="nav nav-tabs">
+    <ul class="nav nav-tabs custom-tabs">
         <li class="nav-item">
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#similarity">📄 Document Similarity</button>
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#similarity">
+                📄 <strong>Document Similarity</strong>
+            </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#plagiarism">🌐 Plagiarism Check</button>
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#plagiarism">
+                🌐 <strong>Plagiarism Check</strong>
+            </button>
         </li>
     </ul>
 
-    <div class="tab-content">
-        <!-- Document Similarity Tab -->
-        <div class="tab-pane fade show active p-3" id="similarity">
-            <h4>Results</h4>
-            <p><strong>Similarity Score:</strong> {{ similarity_score | default(0) | round(2) }}%</p>
 
-            <h5>Document Details</h5>
-            <ul>
+    <div class="tab-content">
+        <div class="tab-pane fade show active p-3" id="similarity">
+            <h4><i class="fas fa-balance-scale"></i> Document Similarity</h4>
+            <p class="text-muted">Analysis of text similarity between the uploaded documents.</p>
+
+            <div class="alert alert-info">
+                <h5><i class="fas fa-percentage"></i> Similarity Score:
+                    <span class="badge bg-primary">{{ similarity_score | default(0) | round(2) }}%</span>
+                </h5>
+            </div>
+
+            <h5><i class="fas fa-file-alt"></i> Document Details</h5>
+            <ul class="list-group">
                 {% if doc1_info %}
-                <li><strong>{{ doc1_info.name }}</strong> - {{ doc1_info.size }} KB</li>
+                <li class="list-group-item">
+                    <strong>📄 {{ doc1_info.name }}</strong> - {{ doc1_info.size }} KB | {{ doc1_info.word_count
+                    }} words
+                </li>
                 {% endif %}
                 {% if doc2_info %}
-                <li><strong>{{ doc2_info.name }}</strong> - {{ doc2_info.size }} KB</li>
+                <li class="list-group-item">
+                    <strong>📄 {{ doc2_info.name }}</strong> - {{ doc2_info.size }} KB | {{ doc2_info.word_count
+                    }} words
+                </li>
                 {% endif %}
             </ul>
 
-            <div class="row">
+            <div class="row mt-4">
                 <div class="col-md-6">
-                    <h5 class="mb-3">Similarity Breakdown</h5>
-                    <img src="data:image/png;base64,{{ similarity_chart }}" class="img-fluid mt-3">
+                    <h5><i class="fas fa-chart-pie"></i> Similarity Breakdown</h5>
+                    <img src="data:image/png;base64,{{ similarity_chart }}" class="img-fluid">
                 </div>
                 <div class="col-md-6">
-                    <h5 class="mb-3">Word Cloud</h5>
+                    <h5><i class="fas fa-font"></i> Word Cloud</h5>
                     <img src="data:image/png;base64,{{ wordcloud1 }}" class="img-thumbnail">
                 </div>
             </div>
 
             <div class="row mt-4">
                 <div class="col-md-6">
-                    <h5>Word Match Analysis</h5>
+                    <h5><i class="fas fa-chart-bar"></i> Word Match Analysis</h5>
                     <img src="data:image/png;base64,{{ word_freq_chart }}" class="img-fluid">
                 </div>
                 <div class="col-md-6">
-                    <h5>Sentence Similarity Distribution</h5>
+                    <h5><i class="fas fa-align-left"></i> Sentence Similarity Distribution</h5>
                     <img src="data:image/png;base64,{{ sentence_similarity_chart }}" class="img-fluid">
                 </div>
             </div>
 
+
             <div class="mt-4">
-                <h5>Detailed Comparison</h5>
-                <ul>
-                    <li><strong>Total Words in Doc 1:</strong> {{ word_comparison.total_words_doc1 }}</li>
-                    <li><strong>Total Words in Doc 2:</strong> {{ word_comparison.total_words_doc2 }}</li>
-                    <li><strong>Common Words:</strong> {{ word_comparison.common_words }}</li>
-                    <li><strong>Unique Words (Doc 1):</strong> {{ word_comparison.unique_words_doc1 }}</li>
-                    <li><strong>Unique Words (Doc 2):</strong> {{ word_comparison.unique_words_doc2 }}</li>
-                </ul>
+                <h5><i class="fas fa-search"></i> Detailed Comparison</h5>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>📌 Metric</th>
+                            <th>📄 Document 1</th>
+                            <th>📄 Document 2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><i class="fas fa-file-word"></i> Total Words</td>
+                            <td>{{ word_comparison.total_words_doc1 | default(0) }}</td>
+                            <td>{{ word_comparison.total_words_doc2 | default(0) }}</td>
+                        </tr>
+                        <tr>
+                            <td><i class="fas fa-exchange-alt"></i> Common Words</td>
+                            <td colspan="2">{{ word_comparison.common_words | default(0) }}</td>
+                        </tr>
+                        <tr>
+                            <td><i class="fas fa-user-minus"></i> Unique Words</td>
+                            <td>{{ word_comparison.unique_words_doc1 | default(0) }}</td>
+                            <td>{{ word_comparison.unique_words_doc2 | default(0) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
         <div class="tab-pane fade p-3" id="plagiarism">
-            <h4>Plagiarism Check</h4>
+            <h4 class="text-danger"><i class="fas fa-exclamation-triangle"></i> Plagiarism Check</h4>
         
-            {% if doc1_info %}
-            <div class="mb-4 p-3 border rounded bg-light">
-                <p><strong>{{ doc1_info.name }} Plagiarism Detected:</strong> {{ plagiarism_percentage_doc1 }}%</p>
-                <p><strong>Most Matched Source:</strong> 
-                    {% if most_matched_source_doc1 %}
-                    <a href="{{ most_matched_source_doc1 }}" target="_blank">{{ most_matched_source_doc1 }}</a>
-                    {% else %}
-                    <span class="text-muted">No exact match found.</span>
+            {% if plagiarism_percentage_doc1 > 0 or plagiarism_percentage_doc2 > 0 %}
+                {% if doc1_info %}
+                <div class="plagiarism-card">
+                    <h5><i class="fas fa-file-alt"></i> {{ doc1_info.name }}</h5>
+                    <p class="plagiarism-score">
+                        <strong>Plagiarism Detected:</strong> 
+                        <span class="{{ 'text-danger' if plagiarism_percentage_doc1 >= 50 else 'text-warning' if plagiarism_percentage_doc1 >= 20 else 'text-success' }}">
+                            {{ plagiarism_percentage_doc1 }}%
+                        </span>
+                    </p>
+                    <p><strong>Most Matched Source:</strong> 
+                        {% if most_matched_source_doc1 %}
+                            <a href="{{ most_matched_source_doc1 }}" target="_blank">{{ most_matched_source_doc1 }}</a>
+                        {% else %}
+                            <span class="text-muted">No exact match found.</span>
+                        {% endif %}
+                    </p>
+        
+                    {% if online_results_doc1 %}
+                    <h6>Matched Sources:</h6>
+                    <ul class="list-group">
+                        {% for result in online_results_doc1 %}
+                        <li class="list-group-item">
+                            <a href="{{ result.link }}" target="_blank">{{ result.title }}</a><br>
+                            <small>{{ result.snippet }}</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
                     {% endif %}
-                </p>
-        
-                {% if online_results_doc1 %}
-                <h5>Matched Sources:</h5>
-                <ul class="list-group">
-                    {% for result in online_results_doc1 %}
-                    <li class="list-group-item">
-                        <a href="{{ result.link }}" target="_blank">{{ result.title }}</a><br>
-                        <small>{{ result.snippet }}</small>
-                    </li>
-                    {% endfor %}
-                </ul>
+                </div>
                 {% endif %}
-            </div>
-            {% endif %}
         
-            {% if doc2_info %}
-            <div class="mt-4 mb-4 p-3 border rounded bg-light">
-                <p><strong>{{ doc2_info.name }} Plagiarism Detected:</strong> {{ plagiarism_percentage_doc2 }}%</p>
-                <p><strong>Most Matched Source:</strong> 
-                    {% if most_matched_source_doc2 %}
-                    <a href="{{ most_matched_source_doc2 }}" target="_blank">{{ most_matched_source_doc2 }}</a>
-                    {% else %}
-                    <span class="text-muted">No exact match found.</span>
+                {% if doc2_info %}
+                <div class="plagiarism-card">
+                    <h5><i class="fas fa-file-alt"></i> {{ doc2_info.name }}</h5>
+                    <p class="plagiarism-score">
+                        <strong>Plagiarism Detected:</strong> 
+                        <span class="{{ 'text-danger' if plagiarism_percentage_doc2 >= 50 else 'text-warning' if plagiarism_percentage_doc2 >= 20 else 'text-success' }}">
+                            {{ plagiarism_percentage_doc2 }}%
+                        </span>
+                    </p>
+                    <p><strong>Most Matched Source:</strong> 
+                        {% if most_matched_source_doc2 %}
+                            <a href="{{ most_matched_source_doc2 }}" target="_blank">{{ most_matched_source_doc2 }}</a>
+                        {% else %}
+                            <span class="text-muted">No exact match found.</span>
+                        {% endif %}
+                    </p>
+        
+                    {% if online_results_doc2 %}
+                    <h6>Matched Sources:</h6>
+                    <ul class="list-group">
+                        {% for result in online_results_doc2 %}
+                        <li class="list-group-item">
+                            <a href="{{ result.link }}" target="_blank">{{ result.title }}</a><br>
+                            <small>{{ result.snippet }}</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
                     {% endif %}
-                </p>
-        
-                {% if online_results_doc2 %}
-                <h5>Matched Sources:</h5>
-                <ul class="list-group">
-                    {% for result in online_results_doc2 %}
-                    <li class="list-group-item">
-                        <a href="{{ result.link }}" target="_blank">{{ result.title }}</a><br>
-                        <small>{{ result.snippet }}</small>
-                    </li>
-                    {% endfor %}
-                </ul>
+                </div>
                 {% endif %}
-            </div>
+            {% else %}
+                <p class="text-muted">⚠️ No plagiarism detected.</p>
             {% endif %}
         </div>
-                     
+        
+        
     </div>
 </div>
 {% endif %}
@@ -155,6 +207,10 @@
             breadcrumb.querySelector("li:last-child").innerHTML = `<a href="?reset=true">Document Analysis</a> ${newCrumb}`;
         }
 
+        if (document.getElementById("similarity")) {
+            updateBreadcrumb("Comparison");
+        }
+
         comparisonTab.addEventListener("click", function () {
             updateBreadcrumb("Comparison");
         });
@@ -168,4 +224,5 @@
         });
     });
 </script>
+
 {% endblock %}

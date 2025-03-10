@@ -196,4 +196,56 @@ footer {
     background-color: #DCDCDC;
     padding: 20px;
     border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.custom-tabs .nav-link {
+    color: #495057; 
+    font-weight: bold;
+    transition: all 0.3s ease-in-out;
+}
+
+.custom-tabs .nav-link.active {
+    background-color: #007bff; 
+    color: white;
+    border-radius: 5px;
+}
+
+.custom-tabs .nav-link:hover {
+    color: #0056b3;
+}
+
+.plagiarism-section {
+    background: #fff3f3;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 5px solid #dc3545;
+    margin-bottom: 20px;
+}
+
+.plagiarism-card {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    margin-bottom: 15px;
+}
+
+.plagiarism-score {
+    font-size: 1.2rem;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+    font-weight: bold;
+}
+
+.text-warning {
+    color: #ffc107 !important;
+    font-weight: bold;
+}
+
+.text-success {
+    color: #28a745 !important;
+    font-weight: bold;
 }
