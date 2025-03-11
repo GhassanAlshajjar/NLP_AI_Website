@@ -9,25 +9,31 @@ import nltk
 nltk.download('punkt')
 from nltk.tokenize import sent_tokenize
 
+FIGURE_SIZE = (6, 6)
+
 def generate_word_cloud_base64(text):
-    wordcloud = WordCloud(width=600, height=300, background_color='white').generate(text)
+    """Generates a word cloud from text."""
+    wordcloud = WordCloud(width=600, height=600, background_color='white').generate(text)
+    
     img_io = io.BytesIO()
-    wordcloud.to_image().save(img_io, format='PNG')
+    plt.figure(figsize=FIGURE_SIZE)
+    plt.imshow(wordcloud, interpolation="bilinear")
+    plt.axis("off")  # Remove axes for clarity
+    plt.savefig(img_io, format='PNG', bbox_inches='tight')
+    plt.close()
+    
     img_io.seek(0)
     return base64.b64encode(img_io.getvalue()).decode()
 
 def generate_similarity_pie_chart_base64(similarity_score):
+    """Generates a pie chart to represent document similarity."""
     labels = ['Similarity', 'Uniqueness']
     similarity_score = max(0, min(similarity_score, 100))
     sizes = [similarity_score, 100 - similarity_score]
 
-    if sum(sizes) == 0:
-        sizes = [100, 0]
-        labels = ['Identical Documents', '']
-
     colors = ['#FF6B6B', '#6BCB77']
 
-    plt.figure(figsize=(5, 5))
+    plt.figure(figsize=FIGURE_SIZE)
     plt.pie(
         sizes,
         labels=labels,
@@ -36,16 +42,18 @@ def generate_similarity_pie_chart_base64(similarity_score):
         startangle=140,
         wedgeprops={'edgecolor': 'white'}
     )
-    plt.axis('equal')
+    plt.axis('equal')  # Ensure a perfect circle
     plt.title('Document Similarity Breakdown')
 
     img_io = io.BytesIO()
     plt.savefig(img_io, format='PNG', bbox_inches='tight')
     plt.close()
+    
     img_io.seek(0)
     return base64.b64encode(img_io.getvalue()).decode()
 
 def generate_word_frequency_chart(text1, text2):
+    """Generates a bar chart for common words in both documents."""
     words1 = Counter(text1.lower().split())
     words2 = Counter(text2.lower().split())
 
@@ -59,7 +67,7 @@ def generate_word_frequency_chart(text1, text2):
     top_words = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)[:5]
     labels, values = zip(*top_words) if top_words else ([], [])
 
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=FIGURE_SIZE)
     plt.bar(labels, values, color=['#FF6B6B', '#6BCB77', '#4D96FF', '#FFA500', '#A569BD'])
     plt.title('Top Common Words in Both Documents')
     plt.ylabel('Frequency')
@@ -67,10 +75,12 @@ def generate_word_frequency_chart(text1, text2):
     img_io = io.BytesIO()
     plt.savefig(img_io, format='PNG', bbox_inches='tight')
     plt.close()
+    
     img_io.seek(0)
     return base64.b64encode(img_io.getvalue()).decode()
 
 def generate_sentence_similarity_chart_base64(text1, text2):
+    """Generates a histogram showing sentence similarity distribution."""
     sentences1 = sent_tokenize(text1)
     sentences2 = sent_tokenize(text2)
     
@@ -87,7 +97,7 @@ def generate_sentence_similarity_chart_base64(text1, text2):
         max_sim = max(similarity_scores) if len(similarity_scores) > 0 else 0
         similarities.append(max_sim)
     
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=FIGURE_SIZE)
     plt.hist(similarities, bins=10, color='#4D96FF', alpha=0.7, edgecolor='black')
     plt.xlabel('Similarity Score')
     plt.ylabel('Sentence Count')
@@ -96,10 +106,12 @@ def generate_sentence_similarity_chart_base64(text1, text2):
     img_io = io.BytesIO()
     plt.savefig(img_io, format='PNG', bbox_inches='tight')
     plt.close()
+    
     img_io.seek(0)
     return base64.b64encode(img_io.getvalue()).decode()
 
 def generate_visualizations(text1, text2, similarity_score):
+    """Generates all visualizations and returns them as base64 images."""
     wordcloud1 = generate_word_cloud_base64(text1)
     similarity_chart = generate_similarity_pie_chart_base64(similarity_score)
     word_freq_chart = generate_word_frequency_chart(text1, text2)

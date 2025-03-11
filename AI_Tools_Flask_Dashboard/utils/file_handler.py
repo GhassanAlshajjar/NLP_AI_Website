@@ -1,9 +1,16 @@
 import docx
 import pdfplumber
+import re
+
+def clean_text(text):
+    """Normalizes extracted text: lowercase, remove extra spaces, and special characters."""
+    text = text.lower()  # Convert to lowercase
+    text = re.sub(r'\s+', ' ', text).strip()  # Remove extra spaces and newlines
+    return text
 
 def extract_text(file):
     """
-    Extracts text from PDF, DOCX, or TXT files, including structured text from tables, bullet points, headers, and footers.
+    Extracts text from PDF, DOCX, or TXT files and normalizes it.
     """
     try:
         text = ""
@@ -42,7 +49,7 @@ def extract_text(file):
         elif file.filename.endswith('.txt'):
             text = file.read().decode('utf-8')
 
-        return text.strip()
+        return clean_text(text)  # Normalize text before returning
 
     except Exception as e:
         print(f"Error extracting text: {e}")

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}2FA Verification - NLP App{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Two-Factor Authentication</h2>
+    <p>We've sent a 6-digit verification code to your email. Please enter the code below to complete your login.</p>
+
+    <form method="POST">
+        <div class="mb-3">
+            <label for="code" class="form-label">Verification Code</label>
+            <input type="text" class="form-control" id="code" name="code" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Verify</button>
+    </form>
+
+    <p class="mt-3">
+        Didn't receive the email? <a href="{{ url_for('routes.login') }}">Try logging in again</a>.
+    </p>
+</div>
+{% endblock %}
