@@ -83,14 +83,6 @@
                             <label for="password" class="form-label">New Password</label>
                             <input type="password" class="form-control" id="password" name="password">
                         </div>
-
-                        <!-- 2FA Toggle -->
-                        <div class="form-check form-switch d-flex align-items-center">
-                            <input class="form-check-input me-2" type="checkbox" id="2fa" name="2fa" {% if
-                                user_data.get('2fa_enabled') %} checked {% endif %}>
-                            <label class="form-check-label" for="2fa">Enable Two-Factor Authentication</label>
-                        </div>
-
                         <button type="submit" class="btn btn-danger mt-3">Update Security</button>
                     </form>
                 </div>

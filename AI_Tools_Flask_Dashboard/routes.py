@@ -1,5 +1,8 @@
 import random
 import time
+import smtplib
+import os
+from email.mime.text import MIMEText
 from firebase_admin import auth
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session
 from firebase_admin import auth, db
@@ -224,24 +227,6 @@ def login():
             user_ref = db.reference(f"users/{user.uid}")
             user_data = user_ref.get()
 
-            # Check if 2FA is enabled
-            if user_data and user_data.get("2fa_enabled"):
-                # Prevent multiple emails in a short period
-                if session.get("last_2fa_email_sent") and time.time() - session["last_2fa_email_sent"] < 60:
-                    flash("A 2FA email was already sent. Please check your inbox.", "warning")
-                    return redirect(url_for("routes.verify_2fa"))
-
-                verification_code = str(random.randint(100000, 999999))
-                session['2fa_code'] = verification_code
-                session['pending_user'] = user.uid
-                session["last_2fa_email_sent"] = time.time()  # Save timestamp
-
-                # Send Firebase 2FA email
-                send_firebase_2fa_email(email, verification_code)
-
-                return redirect(url_for("routes.verify_2fa"))
-
-            # Normal login
             session['user_id'] = user.uid
             session['email'] = user.email
             session['username'] = user_data.get('username', 'Unknown')
@@ -256,6 +241,8 @@ def login():
             flash(f"An error occurred: {str(e)}", "danger")
 
     return render_template("login.html", page_title="Login")
+
+
 
 @routes.route("/signup", methods=["GET", "POST"])
 def signup():
@@ -312,14 +299,12 @@ def profile():
     if request.method == "POST":
         username = request.form.get("username", user_data.get("username", ""))
         email = request.form.get("email", user_data.get("email", ""))
-        enable_2fa = request.form.get("2fa") == "on"
 
         try:
             # Update only changed fields, preserving existing data
             user_update_data = {
                 "email": email,
                 "username": username,
-                "2fa_enabled": enable_2fa
             }
             user_ref.update(user_update_data)
 
@@ -333,49 +318,6 @@ def profile():
             flash(f"An error occurred: {str(e)}", "danger")
 
     return render_template("profile.html", page_title="Profile", user_data=user_data)
-
-
-@routes.route("/verify-2fa", methods=["GET", "POST"])
-def verify_2fa():
-    if 'pending_user' not in session:
-        flash("Session expired. Please log in again.", "danger")
-        return redirect(url_for("routes.login"))
-
-    if request.method == "POST":
-        user_code = request.form.get("code")
-
-        if user_code == session.get("2fa_code"):
-            session['user_id'] = session.pop("pending_user")
-            session.pop("2fa_code", None)
-            flash("2FA verification successful. Logged in!", "success")
-            return redirect(url_for("routes.home"))
-        else:
-            flash("Invalid verification code. Try again.", "danger")
-
-    return render_template("verify_2fa.html")
-
-
-import time
-from firebase_admin import auth
-
-def send_firebase_2fa_email(email):
-    try:
-        # Prevent multiple emails in a short time
-        if session.get("last_2fa_email_sent") and time.time() - session["last_2fa_email_sent"] < 60:
-            flash("A 2FA email was already sent. Please check your inbox.", "warning")
-            return
-
-        # Use Firebase’s built-in email verification (this sends an email automatically)
-        auth.send_email_verification(auth.get_user_by_email(email))
-
-        # Store timestamp to prevent spamming
-        session["last_2fa_email_sent"] = time.time()
-
-        print(f"✅ 2FA email sent to {email}")
-
-    except Exception as e:
-        print(f"❌ Error sending Firebase 2FA email: {e}")
-
 
 
 

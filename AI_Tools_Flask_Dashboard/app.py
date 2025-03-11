@@ -1,7 +1,6 @@
 import sys
 import os
 from datetime import timedelta
-from flask import Flask
 from dotenv import load_dotenv 
 from AI_Tools_Flask_Dashboard import create_app
 
