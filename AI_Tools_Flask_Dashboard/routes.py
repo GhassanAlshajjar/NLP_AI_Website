@@ -1,11 +1,9 @@
-import random
-import time
-import smtplib
-import os
-from email.mime.text import MIMEText
 from firebase_admin import auth
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session
 from firebase_admin import auth, db
+import cloudinary.uploader
+import datetime
+import re
 from utils.document_analysis import compare_documents
 from utils.web_plagiarism_checker import search_web_plagiarism
 from utils.document_analysis_visualization import (
@@ -16,6 +14,7 @@ from utils.document_analysis_visualization import (
 )
 from utils.document_analysis import extract_text
 from utils.plagiarism_checker import calculate_plagiarism_score
+from utils.metaphor_analysis import detect_metaphors
 
 routes = Blueprint('routes', __name__)
 
@@ -168,6 +167,13 @@ def document_analysis():
         else:
             print("⚠️ [DEBUG] No plagiarism results found for Doc 2")
 
+        
+        if "user_id" not in session:
+            flash("You need to log in to upload files.", "danger")
+            return redirect(url_for("routes.login"))
+
+        user_id = session["user_id"]  # Get current user ID
+
         background_style = "background-color: #DCDCDC; padding: 20px; border-radius: 10px;"
 
     return render_template(
@@ -192,13 +198,56 @@ def document_analysis():
         background_style=background_style
     )
 
+@routes.route("/metaphor-detection", methods=["GET", "POST"])
+def metaphor_detection():
+    breadcrumb = "Home / Metaphor Detection"  # Default breadcrumb
+    text_content = ""
+    detected_metaphors = []
+    doc_info = {}
+
+    if "reset" in request.args:
+        return redirect(url_for("routes.metaphor_detection"))
+
+    if request.method == "POST":
+        doc = request.files.get("document")
+
+        if not doc or not is_valid_file(doc):
+            flash("Please upload a valid document (.txt, .pdf, .docx).", "danger")
+            return render_template("metaphor_detection.html", page_title="Metaphor Detection", breadcrumb=breadcrumb)
+
+        text_content = extract_text(doc)
+
+        words = re.findall(r'\b\w+\b', text_content)
+        word_count = len(words)
+
+        file_size = round(len(text_content.encode('utf-8')) / 1024, 2)  # Convert bytes to KB
+        doc_info = {
+            "name": doc.filename,
+            "word_count": f"{word_count:,}",  # Format word count
+            "size": f"{file_size:,} KB"  # Format file size
+        }
+
+        detected_metaphors = detect_metaphors(text_content)  # Process the document
+
+        # Breadcrumb updates once a document is uploaded
+        breadcrumb = "Home / Metaphor Detection / Document Viewer"
+
+    return render_template(
+        "metaphor_detection.html",
+        page_title="Metaphor Detection",
+        breadcrumb=breadcrumb,
+        text_content=text_content,
+        detected_metaphors=detected_metaphors,
+        doc_info=doc_info
+    )
+
 @routes.route("/option<int:option_id>")
 def option(option_id):
     option_titles = {
         1: "Document Analysis",
         2: "Text Summarizer",
         3: "Machine Learning Models",
-        4: "Option 4",
+        4: "Metaphor Detection",
         5: "Option 5",
         6: "AI Chatbot"
     }

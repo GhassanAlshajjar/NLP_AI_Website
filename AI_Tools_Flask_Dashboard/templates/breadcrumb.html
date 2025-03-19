@@ -3,8 +3,13 @@
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="/">Home</a></li>
-            {% for crumb in breadcrumb.split(' / ')[1:] %}
-                <li class="breadcrumb-item active" aria-current="page">{{ crumb }}</li>
+            {% set crumbs = breadcrumb.split(' / ') %}
+            {% for i in range(1, crumbs|length) %}
+                {% if i == crumbs|length - 1 %}
+                    <li class="breadcrumb-item active" aria-current="page">{{ crumbs[i] }}</li>
+                {% else %}
+                    <li class="breadcrumb-item"><a href="/metaphor-detection?reset=1">{{ crumbs[i] }}</a></li>
+                {% endif %}
             {% endfor %}
         </ol>
     </nav>
