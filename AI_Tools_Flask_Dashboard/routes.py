@@ -4,6 +4,7 @@ from firebase_admin import auth, db
 import cloudinary.uploader
 import datetime
 import re
+import os
 from utils.document_analysis import compare_documents
 from utils.web_plagiarism_checker import search_web_plagiarism
 from utils.document_analysis_visualization import (
@@ -14,7 +15,7 @@ from utils.document_analysis_visualization import (
 )
 from utils.document_analysis import extract_text
 from utils.plagiarism_checker import calculate_plagiarism_score
-from utils.metaphor_analysis import detect_metaphors
+from utils.metaphor_analysis import detect_metaphors, train_metaphor_model, load_metaphor_corpus
 
 routes = Blueprint('routes', __name__)
 
@@ -25,8 +26,77 @@ def home():
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 ALLOWED_EXTENSIONS = {"txt", "pdf", "docx"}
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+
+DATASET_PATHS = [
+    os.path.join(DATA_DIR, "MOH-X.csv"),
+    os.path.join(DATA_DIR, "TroFi.csv"),
+    os.path.join(DATA_DIR, "VUA_metaphor.csv")
+]
+
+# Ensure the model loads only once (not twice in debug)
+if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not os.environ.get("WERKZEUG_RUN_MAIN"):
+    try:
+        print("📦 Loading metaphor datasets...")
+        METAPHOR_SENTENCES = load_metaphor_corpus(DATASET_PATHS)
+        if METAPHOR_SENTENCES:
+            METAPHOR_EMBEDDINGS = train_metaphor_model(METAPHOR_SENTENCES)
+            CLUSTER_MODEL = None  # No clustering model used now
+            print(f"✅ Trained metaphor model on {len(METAPHOR_SENTENCES)} examples!")
+        else:
+            print("❌ No metaphor examples found.")
+    except Exception as e:
+        METAPHOR_EMBEDDINGS = None
+        METAPHOR_SENTENCES = None
+        CLUSTER_MODEL = None
+        print(f"❌ Failed to initialize metaphor model: {e}")
+
 def is_valid_file(file):
     return file and "." in file.filename and file.filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@routes.route("/metaphor-detection", methods=["GET", "POST"])
+def metaphor_detection():
+    breadcrumb = "Home / Metaphor Detection"
+    text_content = ""
+    detected_metaphors = []
+    doc_info = {}
+
+    if "reset" in request.args:
+        return redirect(url_for("routes.metaphor_detection"))
+
+    if request.method == "POST":
+        doc = request.files.get("document")
+        if not doc:
+            flash("Please upload a document.", "danger")
+            return render_template("metaphor_detection.html", breadcrumb=breadcrumb)
+
+        text_content = extract_text(doc)
+        words = re.findall(r'\b\w+\b', text_content)
+
+        doc_info = {
+            "name": doc.filename,
+            "word_count": f"{len(words):,}",
+            "size": f"{round(len(text_content.encode('utf-8')) / 1024, 2):,} KB"
+        }
+
+        if METAPHOR_EMBEDDINGS is not None:
+            detected_metaphors = detect_metaphors(
+                text_content,
+                METAPHOR_EMBEDDINGS,
+                METAPHOR_SENTENCES
+            )
+        else:
+            flash("Metaphor detection model is not available.", "danger")
+
+    return render_template(
+        "metaphor_detection.html",
+        page_title="Metaphor Detection",
+        breadcrumb=breadcrumb,
+        text_content=text_content,
+        detected_metaphors=detected_metaphors,
+        doc_info=doc_info
+    )
 
 @routes.route("/document-analysis", methods=["GET", "POST"])
 def document_analysis():
@@ -196,49 +266,6 @@ def document_analysis():
         sentence_similarity_chart=sentence_similarity_chart,
         word_comparison=word_comparison or {},
         background_style=background_style
-    )
-
-@routes.route("/metaphor-detection", methods=["GET", "POST"])
-def metaphor_detection():
-    breadcrumb = "Home / Metaphor Detection"  # Default breadcrumb
-    text_content = ""
-    detected_metaphors = []
-    doc_info = {}
-
-    if "reset" in request.args:
-        return redirect(url_for("routes.metaphor_detection"))
-
-    if request.method == "POST":
-        doc = request.files.get("document")
-
-        if not doc or not is_valid_file(doc):
-            flash("Please upload a valid document (.txt, .pdf, .docx).", "danger")
-            return render_template("metaphor_detection.html", page_title="Metaphor Detection", breadcrumb=breadcrumb)
-
-        text_content = extract_text(doc)
-
-        words = re.findall(r'\b\w+\b', text_content)
-        word_count = len(words)
-
-        file_size = round(len(text_content.encode('utf-8')) / 1024, 2)  # Convert bytes to KB
-        doc_info = {
-            "name": doc.filename,
-            "word_count": f"{word_count:,}",  # Format word count
-            "size": f"{file_size:,} KB"  # Format file size
-        }
-
-        detected_metaphors = detect_metaphors(text_content)  # Process the document
-
-        # Breadcrumb updates once a document is uploaded
-        breadcrumb = "Home / Metaphor Detection / Document Viewer"
-
-    return render_template(
-        "metaphor_detection.html",
-        page_title="Metaphor Detection",
-        breadcrumb=breadcrumb,
-        text_content=text_content,
-        detected_metaphors=detected_metaphors,
-        doc_info=doc_info
     )
 
 @routes.route("/option<int:option_id>")

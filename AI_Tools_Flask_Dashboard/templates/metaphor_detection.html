@@ -15,6 +15,11 @@
         <label for="fileUpload">Upload Document</label>
         <input type="file" name="document" id="fileUpload" class="form-control">
     </div>
+    <div class="text-muted mt-3">
+        📌 <strong>Supported formats:</strong> .txt, .pdf, .docx<br>
+        🚀 <strong>Max file size:</strong> 5MB
+    </div>
+
     <button type="submit" class="btn btn-primary mt-3">Analyze</button>
 </form>
 
@@ -61,23 +66,30 @@
 
     <!-- Metaphor Analysis Tab -->
     <div class="tab-pane fade" id="metaphor-analysis" role="tabpanel" aria-labelledby="metaphor-analysis-tab">
-        <h3>Detected Metaphors</h3>
-
         {% if detected_metaphors %}
+        <h3>Detected Metaphors</h3>
         <table class="table table-striped mt-3">
             <thead>
                 <tr>
-                    <th>Metaphor</th>
-                    <th>Context</th>
+                    <th>Sentence</th>
+                    <th>Metaphorical Context</th>
+                    <th>Explanation</th>
+                    <th>Similarity Score</th>
+                    <th>Confidence Score</th>
                     <th>Type</th>
+                    <th>Detected As</th>
                 </tr>
             </thead>
             <tbody>
                 {% for metaphor in detected_metaphors %}
                 <tr>
-                    <td><strong>{{ metaphor["phrase"] }}</strong></td>
-                    <td>{{ metaphor["context"] }}</td>
+                    <td><strong>{{ metaphor["sentence"] }}</strong></td>
+                    <td>{{ metaphor["metaphorical_context"] }}</td>
+                    <td><em>{{ metaphor["highlight"] }}</em></td>
+                    <td>{{ metaphor["similarity_score"] }}</td>
+                    <td>{{ metaphor["confidence_score"] }}%</td>
                     <td>{{ metaphor["type"] }}</td>
+                    <td>{{ metaphor["detected_as"] }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -112,7 +124,7 @@
 
         metaphorReset.addEventListener("click", function (e) {
             e.preventDefault();
-            window.location.href = "/metaphor-detection?reset=1";  // Redirects properly
+            window.location.href = "/metaphor-detection?reset=1";
         });
     });
 </script>

@@ -1,6 +1,5 @@
 import requests
 import re
-import time
 
 # Cache to store already searched queries (to avoid duplicate searches)
 plagiarism_cache = {}
