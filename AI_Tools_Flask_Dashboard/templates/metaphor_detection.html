@@ -68,32 +68,97 @@
     <div class="tab-pane fade" id="metaphor-analysis" role="tabpanel" aria-labelledby="metaphor-analysis-tab">
         {% if detected_metaphors %}
         <h3>Detected Metaphors</h3>
+        {% if stats %}
+        <div class="alert alert-info">
+            <strong>{{ stats.metaphors_detected }}</strong> metaphor{{ stats.metaphors_detected != 1 and "s" or "" }}
+            detected out of {{ stats.total_sentences }} sentences.
+            <br>
+            Detection Rate: {{ stats.detection_rate }}
+        </div>
+        {% endif %}
+        <form method="get" class="mb-3 d-flex justify-content-end align-items-center">
+            <input type="hidden" name="file_id" value="{{ pagination.file_id }}">
+            <label for="per_page" class="me-2">Show per page:</label>
+            <select name="per_page" id="per_page" class="form-select w-auto" onchange="this.form.submit()">
+                <option value="10" {% if pagination.per_page==10 %}selected{% endif %}>10</option>
+                <option value="25" {% if pagination.per_page==25 %}selected{% endif %}>25</option>
+                <option value="50" {% if pagination.per_page==50 %}selected{% endif %}>50</option>
+                <option value="100" {% if pagination.per_page==100 %}selected{% endif %}>100</option>
+            </select>
+        </form>        
         <table class="table table-striped mt-3">
             <thead>
                 <tr>
-                    <th>Sentence</th>
-                    <th>Metaphorical Context</th>
+                    <th>Highlighted Sentence</th>
+                    <th>Metaphor Phrase</th>
                     <th>Explanation</th>
-                    <th>Similarity Score</th>
-                    <th>Confidence Score</th>
-                    <th>Type</th>
-                    <th>Detected As</th>
                 </tr>
             </thead>
             <tbody>
-                {% for metaphor in detected_metaphors %}
+                {% for m in detected_metaphors %}
                 <tr>
-                    <td><strong>{{ metaphor["sentence"] }}</strong></td>
-                    <td>{{ metaphor["metaphorical_context"] }}</td>
-                    <td><em>{{ metaphor["highlight"] }}</em></td>
-                    <td>{{ metaphor["similarity_score"] }}</td>
-                    <td>{{ metaphor["confidence_score"] }}%</td>
-                    <td>{{ metaphor["type"] }}</td>
-                    <td>{{ metaphor["detected_as"] }}</td>
+                    <td style="white-space: normal;">{{ m["highlighted"] | safe }}</td>
+                    <td>
+                        <ul class="mb-0" style="padding-left: 1.2em;">
+                            {% for phrase in m["metaphor_spans"] %}
+                            <li><code style="color: red;">{{ phrase }}</code></li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>
+                        <ul style="padding-left: 1.2em;">
+                            {% for explanation in m["explanation"] %}
+                            <li><em>{{ explanation }}</em></li>
+                            {% endfor %}
+                        </ul>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        <div class="mt-4 mb-5">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center flex-wrap">
+
+                    <!-- Previous Button -->
+                    <li class="page-item {% if pagination.current_page == 1 %}disabled{% endif %}">
+                        <a class="page-link" href="?file_id={{ pagination.file_id }}&page={{ pagination.current_page - 1 }}&per_page={{ pagination.per_page }}">Previous</a>
+                    </li>
+                
+                    <!-- First Page -->
+                    {% if pagination.current_page > 3 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?file_id={{ pagination.file_id }}&page=1&per_page={{ pagination.per_page }}">1</a>
+                    </li>
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                
+                    <!-- Pages Around Current -->
+                    {% for p in range(pagination.current_page - 2, pagination.current_page + 3) %}
+                        {% if 1 <= p <= pagination.total_pages %}
+                        <li class="page-item {% if pagination.current_page == p %}active{% endif %}">
+                            <a class="page-link" href="?file_id={{ pagination.file_id }}&page={{ p }}&per_page={{ pagination.per_page }}">{{ p }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                
+                    <!-- Last Page -->
+                    {% if pagination.current_page < pagination.total_pages - 2 %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    <li class="page-item">
+                        <a class="page-link" href="?file_id={{ pagination.file_id }}&page={{ pagination.total_pages }}&per_page={{ pagination.per_page }}">{{ pagination.total_pages }}</a>
+                    </li>
+                    {% endif %}
+                
+                    <!-- Next Button -->
+                    <li class="page-item {% if pagination.current_page == pagination.total_pages %}disabled{% endif %}">
+                        <a class="page-link" href="?file_id={{ pagination.file_id }}&page={{ pagination.current_page + 1 }}&per_page={{ pagination.per_page }}">Next</a>
+                    </li>
+                
+                </ul>
+                
+            </nav>
+        </div>
         {% else %}
         <p class="text-muted">No metaphors detected.</p>
         {% endif %}
@@ -129,6 +194,23 @@
     });
 </script>
 
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const docTab = document.getElementById("doc-view-tab");
+        const metaphorTab = document.getElementById("metaphor-analysis-tab");
 
+        // Restore last selected tab
+        const lastTab = localStorage.getItem("activeTab");
+        if (lastTab === "metaphor") {
+            metaphorTab.classList.add("active");
+            document.getElementById("metaphor-analysis").classList.add("show", "active");
+            docTab.classList.remove("active");
+            document.getElementById("doc-view").classList.remove("show", "active");
+        }
+
+        docTab.addEventListener("click", () => localStorage.setItem("activeTab", "doc"));
+        metaphorTab.addEventListener("click", () => localStorage.setItem("activeTab", "metaphor"));
+    });
+</script>
 
 {% endblock %}

@@ -249,3 +249,20 @@ footer {
     color: #28a745 !important;
     font-weight: bold;
 }
+
+.pagination .page-item {
+    margin: 0 3px;
+}
+
+.pagination {
+    justify-content: center;
+    margin-top: 2rem;
+}
+.page-item.active .page-link {
+    background-color: #3d3d3d;
+    border-color: #3d3d3d;
+    color: white;
+}
+.page-link {
+    color: #3d3d3d;
+}

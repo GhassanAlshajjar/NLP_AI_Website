@@ -1,10 +1,14 @@
 from firebase_admin import auth
+from flask import session
+import uuid, tempfile
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session
 from firebase_admin import auth, db
 import cloudinary.uploader
 import datetime
 import re
 import os
+import nltk
+import math
 from utils.document_analysis import compare_documents
 from utils.web_plagiarism_checker import search_web_plagiarism
 from utils.document_analysis_visualization import (
@@ -15,7 +19,7 @@ from utils.document_analysis_visualization import (
 )
 from utils.document_analysis import extract_text
 from utils.plagiarism_checker import calculate_plagiarism_score
-from utils.metaphor_analysis import detect_metaphors, train_metaphor_model, load_metaphor_corpus
+from utils.metaphor_analysis import detect_metaphor_spans
 
 routes = Blueprint('routes', __name__)
 
@@ -35,68 +39,124 @@ DATASET_PATHS = [
     os.path.join(DATA_DIR, "VUA_metaphor.csv")
 ]
 
-# Ensure the model loads only once (not twice in debug)
+# Ensure the model loads only once
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not os.environ.get("WERKZEUG_RUN_MAIN"):
-    try:
-        print("📦 Loading metaphor datasets...")
-        METAPHOR_SENTENCES = load_metaphor_corpus(DATASET_PATHS)
-        if METAPHOR_SENTENCES:
-            METAPHOR_EMBEDDINGS = train_metaphor_model(METAPHOR_SENTENCES)
-            CLUSTER_MODEL = None  # No clustering model used now
-            print(f"✅ Trained metaphor model on {len(METAPHOR_SENTENCES)} examples!")
-        else:
-            print("❌ No metaphor examples found.")
-    except Exception as e:
-        METAPHOR_EMBEDDINGS = None
-        METAPHOR_SENTENCES = None
-        CLUSTER_MODEL = None
-        print(f"❌ Failed to initialize metaphor model: {e}")
+    print("✅ Metaphor model (BERT) ready for inference.")
+
 
 def is_valid_file(file):
     return file and "." in file.filename and file.filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @routes.route("/metaphor-detection", methods=["GET", "POST"])
 def metaphor_detection():
+    import uuid
+    import tempfile
+    import json
+
     breadcrumb = "Home / Metaphor Detection"
     text_content = ""
     detected_metaphors = []
     doc_info = {}
+    stats = {}
+    pagination = {}
 
+    # Query parameters
+    try:
+        per_page = int(request.args.get("per_page", 10))
+    except ValueError:
+        per_page = 10
+
+    page = int(request.args.get("page", 1))
+    start_index = (page - 1) * per_page
+    file_id = request.args.get("file_id")
+
+    # Reset route
     if "reset" in request.args:
         return redirect(url_for("routes.metaphor_detection"))
 
+    # Handle file upload
     if request.method == "POST":
         doc = request.files.get("document")
         if not doc:
             flash("Please upload a document.", "danger")
             return render_template("metaphor_detection.html", breadcrumb=breadcrumb)
 
+        # Extract and save text
         text_content = extract_text(doc)
         words = re.findall(r'\b\w+\b', text_content)
-
         doc_info = {
             "name": doc.filename,
             "word_count": f"{len(words):,}",
             "size": f"{round(len(text_content.encode('utf-8')) / 1024, 2):,} KB"
         }
 
-        if METAPHOR_EMBEDDINGS is not None:
-            detected_metaphors = detect_metaphors(
-                text_content,
-                METAPHOR_EMBEDDINGS,
-                METAPHOR_SENTENCES
-            )
-        else:
-            flash("Metaphor detection model is not available.", "danger")
+        # Save file to temp
+        file_id = str(uuid.uuid4())
+        temp_txt = os.path.join(tempfile.gettempdir(), f"{file_id}.txt")
+        with open(temp_txt, "w", encoding="utf-8") as f:
+            f.write(text_content)
 
-    return render_template(
-        "metaphor_detection.html",
-        page_title="Metaphor Detection",
-        breadcrumb=breadcrumb,
-        text_content=text_content,
-        detected_metaphors=detected_metaphors,
-        doc_info=doc_info
-    )
+        # Run metaphor detection once and save JSON
+        all_metaphors, total_sentences = detect_metaphor_spans(text_content, start=0, per_page=10000)
+        json_path = os.path.join(tempfile.gettempdir(), f"{file_id}.json")
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(all_metaphors, f, indent=2)
+
+        return redirect(url_for("routes.metaphor_detection", file_id=file_id, page=1, per_page=per_page))
+
+    # After file upload – handle pagination
+    elif request.method == "GET" and file_id:
+        temp_txt = os.path.join(tempfile.gettempdir(), f"{file_id}.txt")
+        json_path = os.path.join(tempfile.gettempdir(), f"{file_id}.json")
+
+        if not os.path.exists(temp_txt) or not os.path.exists(json_path):
+            flash("Uploaded document not found or expired.", "danger")
+            return redirect(url_for("routes.metaphor_detection"))
+
+        # Load text and metaphors from cache
+        with open(temp_txt, "r", encoding="utf-8") as f:
+            text_content = f.read()
+
+        with open(json_path, "r", encoding="utf-8") as f:
+            all_metaphors = json.load(f)
+
+        words = re.findall(r'\b\w+\b', text_content)
+        doc_info = {
+            "name": f"Uploaded File ({file_id[:8]})",
+            "word_count": f"{len(words):,}",
+            "size": f"{round(len(text_content.encode('utf-8')) / 1024, 2):,} KB"
+        }
+
+        total_sentences = len(nltk.sent_tokenize(text_content))
+        total_metaphors = len(all_metaphors)
+        detected_metaphors = all_metaphors[start_index:start_index + per_page]
+
+        stats = {
+            "total_sentences": total_sentences,
+            "metaphors_detected": total_metaphors,
+            "detection_rate": f"{round(100 * total_metaphors / max(1, total_sentences), 1)}%"
+        }
+
+        pagination = {
+            "current_page": page,
+            "per_page": per_page,
+            "total": total_metaphors,
+            "total_pages": math.ceil(total_metaphors / per_page),
+            "file_id": file_id,
+        }
+
+        return render_template(
+            "metaphor_detection.html",
+            page_title="Metaphor Detection",
+            breadcrumb=breadcrumb,
+            text_content=text_content,
+            detected_metaphors=detected_metaphors,
+            doc_info=doc_info,
+            stats=stats,
+            pagination=pagination
+        )
+
+    return render_template("metaphor_detection.html", breadcrumb=breadcrumb)
 
 @routes.route("/document-analysis", methods=["GET", "POST"])
 def document_analysis():

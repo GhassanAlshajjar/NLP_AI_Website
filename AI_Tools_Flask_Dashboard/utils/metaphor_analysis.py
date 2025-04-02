@@ -1,129 +1,90 @@
 import os
-import re
-import nltk
 import torch
+import nltk
 import spacy
-import pandas as pd
-from nltk.corpus import stopwords
-from sentence_transformers import SentenceTransformer, util
+from transformers import BertTokenizerFast, BertForTokenClassification
+from nltk.tokenize import sent_tokenize
 
-# Load models
-nltk.download('punkt')
-nltk.download('stopwords')
-
+nltk.download("punkt")
 nlp = spacy.load("en_core_web_sm")
-stop_words = set(stopwords.words("english"))
-embedder = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
-def clean_text(text):
-    """Lowercase, remove punctuation and stopwords."""
-    text = text.lower()
-    text = re.sub(r'\s+', ' ', text).strip()
-    text = re.sub(r'[^\w\s]', '', text)
-    words = [w for w in text.split() if w not in stop_words]
-    return " ".join(words)
+# Load model
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(BASE_DIR, "training", "bert-metaphor-token-model")
+tokenizer = BertTokenizerFast.from_pretrained(MODEL_PATH)
+model = BertForTokenClassification.from_pretrained(MODEL_PATH)
+model.eval()
 
-def extract_sentences(text):
-    """Extract sentences and structure them in context groups."""
-    sentences = nltk.sent_tokenize(text)
-    paragraphs = []
-    current_paragraph = []
-    
-    for sent in sentences:
-        current_paragraph.append(sent)
-        if len(current_paragraph) >= 3:
-            paragraphs.append(" ".join(current_paragraph))
-            current_paragraph = []
-    
-    if current_paragraph:
-        paragraphs.append(" ".join(current_paragraph))
-    
-    return sentences, paragraphs
+id_to_label = {0: "O", 1: "B-MET", 2: "B-LIT"}
 
-def load_csv_data(file_path):
-    """Load CSV files with multiple encoding attempts."""
-    encodings = ["utf-8", "ISO-8859-1", "windows-1252", "latin-1"]
-    for enc in encodings:
-        try:
-            return pd.read_csv(file_path, encoding=enc, on_bad_lines='skip')
-        except Exception:
-            continue
-    raise ValueError(f"Could not decode {file_path}.")
-
-def load_metaphor_corpus(dataset_paths):
-    """Load labeled metaphors only."""
-    metaphor_examples = {}
-    for path in dataset_paths:
-        if os.path.exists(path):
-            df = load_csv_data(path)
-
-            if 'label' in df.columns and 'sentence' in df.columns:
-                for _, row in df[df['label'] == 1].iterrows():
-                    sentence = clean_text(str(row['sentence']))
-                    if sentence:
-                        metaphor_examples[sentence] = row['sentence']  # Keep original for context
-            
-            elif 'sentence' in df.columns:
-                for s in df['sentence'].dropna().tolist():
-                    cleaned = clean_text(str(s))
-                    if cleaned:
-                        metaphor_examples[cleaned] = s
-
-    return metaphor_examples
-
-def train_metaphor_model(metaphor_sentences):
-    """Train the metaphor model by encoding known metaphors."""
-    return embedder.encode(list(metaphor_sentences.keys()), convert_to_tensor=True)
-
-def extract_metaphor_phrase(sentence):
-    """Identify key metaphorical phrases in a sentence using SpaCy."""
+def enhanced_highlight_and_link(sentence, metaphor_tokens):
     doc = nlp(sentence)
-    metaphors = []
-    
+    highlighted = sentence
+    explanations = []
+    phrases = set()
+
     for token in doc:
-        if token.pos_ in ["VERB", "NOUN"] and token.dep_ in ["nsubj", "dobj", "pobj"]:
-            metaphors.append(token.text)
-    
-    return " ".join(metaphors) if metaphors else sentence
+        clean_text = token.text.lower()
+        if clean_text in metaphor_tokens:
+            subject = ""
+            obj = ""
+            prep_phrase = ""
 
-def generate_explanation(metaphor_sentence, matched_sentence):
-    """Generate an explanation using syntactic similarity."""
-    phrase = extract_metaphor_phrase(metaphor_sentence)
-    return f"The phrase '{phrase}' is used metaphorically, similar to '{matched_sentence}'."
+            for child in token.children:
+                if child.dep_ in ("nsubj", "nsubjpass"):
+                    subject = child.text
+                elif child.dep_ in ("dobj", "attr", "pobj", "nmod"):
+                    obj = child.text
+                elif child.dep_ == "prep":
+                    for grandchild in child.children:
+                        if grandchild.dep_ == "pobj":
+                            prep_phrase = f"{child.text} {grandchild.text}"
 
-def detect_metaphors(text, metaphor_embeddings, metaphor_sentences, threshold=0.75):
-    """Detect metaphors and provide explanations."""
-    raw_sentences, paragraphs = extract_sentences(text)
-    clean_sentences = [clean_text(s) for s in raw_sentences]
-    
+            parts = [subject, token.text, obj, prep_phrase]
+            phrase = " ".join(part for part in parts if part).strip()
+            phrases.add(phrase if phrase else token.text)
+
+            if subject and token.pos_ == "VERB":
+                explanation = f"The metaphor applies to '{subject}' through the verb '{token.text}', suggesting a human-like or forceful action."
+            elif obj:
+                explanation = f"The phrase '{token.text} {obj}' may describe a non-literal impact on '{obj}'."
+            else:
+                explanation = f"The word '{token.text}' is metaphorical based on its abstract or figurative context."
+
+            explanations.append(explanation)
+
+    for phrase in sorted(phrases, key=len, reverse=True):
+        highlighted = highlighted.replace(phrase, f"<span style='color: red;'>{phrase}</span>")
+
+    return list(phrases), highlighted, explanations
+
+def detect_metaphor_spans(text, start=0, per_page=25):
     results = []
+    sentences = sent_tokenize(text)
+    selected = sentences[start:start+per_page]
 
-    for i, (cleaned, raw) in enumerate(zip(clean_sentences, raw_sentences)):
-        if not cleaned:
+    for sentence in selected:
+        inputs = tokenizer(sentence, return_tensors="pt", truncation=True)
+        with torch.no_grad():
+            outputs = model(**inputs)
+
+        logits = outputs.logits
+        predictions = torch.argmax(logits, dim=2).squeeze().tolist()
+        tokens = tokenizer.convert_ids_to_tokens(inputs["input_ids"].squeeze())
+        labels = [id_to_label.get(p, "O") for p in predictions]
+
+        filtered = [(tokens[i], labels[i]) for i in range(len(tokens)) if tokens[i] not in tokenizer.all_special_tokens]
+        metaphor_words = [tok.replace("##", "") for tok, lab in filtered if lab == "B-MET"]
+
+        if not metaphor_words:
             continue
 
-        embedding = embedder.encode([cleaned], convert_to_tensor=True)
-        sim_scores = util.pytorch_cos_sim(embedding, metaphor_embeddings)
-        max_score, best_idx = torch.max(sim_scores, dim=1)
-        score = max_score.item()
+        spans, highlighted_sentence, explanation = enhanced_highlight_and_link(sentence, metaphor_words)
 
-        if score >= threshold:
-            # Select best-matching metaphor sentence for context
-            best_match = list(metaphor_sentences.keys())[best_idx.item()]
-            full_context = metaphor_sentences[best_match]  # Get original sentence
+        results.append({
+            "highlighted": highlighted_sentence,
+            "metaphor_spans": spans,
+            "explanation": explanation
+        })
 
-            # Generate explanation
-            explanation = generate_explanation(raw, full_context)
-
-            results.append({
-                "sentence": raw,
-                "metaphorical_context": full_context,  # Use real metaphor as context
-                "explanation": explanation,
-                "similarity_score": round(score, 2),
-                "confidence_score": f"{round(score * 100, 1)}%",
-                "type": "Metaphor",
-                "detected_as": "Likely Metaphor",
-                "highlight": best_match
-            })
-    
-    return results
+    return results, len(sentences)
