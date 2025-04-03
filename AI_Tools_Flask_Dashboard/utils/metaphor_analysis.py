@@ -24,39 +24,42 @@ def enhanced_highlight_and_link(sentence, metaphor_tokens):
     phrases = set()
 
     for token in doc:
-        clean_text = token.text.lower()
-        if clean_text in metaphor_tokens:
+        if token.text.lower() in metaphor_tokens:
+            # Trace full verb phrase: subject + verb + object/preposition
             subject = ""
-            obj = ""
-            prep_phrase = ""
+            objects = []
+            prep_phrases = []
 
+            # Look upward to find better subject (sometimes subject is the grandparent)
+            if token.head.dep_ in ("ROOT", "conj", "relcl"):
+                subject = next((child.text for child in token.head.children if child.dep_ in ("nsubj", "nsubjpass")), "")
+
+            # Objects and prepositions
             for child in token.children:
-                if child.dep_ in ("nsubj", "nsubjpass"):
-                    subject = child.text
-                elif child.dep_ in ("dobj", "attr", "pobj", "nmod"):
-                    obj = child.text
+                if child.dep_ in ("dobj", "pobj", "attr", "acomp", "oprd"):
+                    objects.append(child.text)
                 elif child.dep_ == "prep":
-                    for grandchild in child.children:
-                        if grandchild.dep_ == "pobj":
-                            prep_phrase = f"{child.text} {grandchild.text}"
+                    prep = " ".join([child.text] + [gc.text for gc in child.children])
+                    prep_phrases.append(prep)
 
-            parts = [subject, token.text, obj, prep_phrase]
-            phrase = " ".join(part for part in parts if part).strip()
-            phrases.add(phrase if phrase else token.text)
+            full_phrase = " ".join([subject, token.text] + objects + prep_phrases).strip()
+            phrases.add(full_phrase if full_phrase else token.text)
 
+            # Explanation logic
             if subject and token.pos_ == "VERB":
-                explanation = f"The metaphor applies to '{subject}' through the verb '{token.text}', suggesting a human-like or forceful action."
-            elif obj:
-                explanation = f"The phrase '{token.text} {obj}' may describe a non-literal impact on '{obj}'."
+                explanations.append(f"The metaphor applies to '{subject}' through the verb '{token.text}', suggesting a human-like or forceful action.")
+            elif objects:
+                explanations.append(f"The phrase '{token.text} {objects[0]}' may describe a non-literal impact on '{objects[0]}'.")
+            elif prep_phrases:
+                explanations.append(f"The phrase '{token.text} {prep_phrases[0]}' is metaphorical based on its figurative context.")
             else:
-                explanation = f"The word '{token.text}' is metaphorical based on its abstract or figurative context."
-
-            explanations.append(explanation)
+                explanations.append(f"The word '{token.text}' is metaphorical based on its abstract or figurative context.")
 
     for phrase in sorted(phrases, key=len, reverse=True):
         highlighted = highlighted.replace(phrase, f"<span style='color: red;'>{phrase}</span>")
 
     return list(phrases), highlighted, explanations
+
 
 def detect_metaphor_spans(text, start=0, per_page=25):
     results = []
