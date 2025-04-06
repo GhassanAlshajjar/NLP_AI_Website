@@ -3,7 +3,7 @@ services:
     name: nlp-ai-dashboard
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn AI_Tools_Flask_Dashboard.app:app
     plan: free
     envVars:
       - key: FLASK_SECRET_KEY
