@@ -263,8 +263,8 @@ def document_analysis():
 
         if doc1:
             try:
-                api_key = "AIzaSyAekjz6NytWtrJHsCeo5jJSlIwgDLjEFFM"
-                cx = "90b789512521f489e"
+                api_key = os.getenv("GOOGLE_API_KEY_DOC1")
+                cx = os.getenv("GOOGLE_CX")
                 print("🔍 [DEBUG] Calling search_web_plagiarism for Document 1...")
                 online_results_doc1 = search_web_plagiarism(text1, api_key, cx)
                 print(f"🔍 [DEBUG] Online Results for Doc 1: {len(online_results_doc1)}")
@@ -273,8 +273,8 @@ def document_analysis():
 
         if doc2:
             try:
-                api_key = "AIzaSyBoJPUBEky8tQTx-AcGr5lqmIHqKcVqxCU"
-                cx = "90b789512521f489e"
+                api_key = os.getenv("GOOGLE_API_KEY_DOC2")
+                cx = os.getenv("GOOGLE_CX")
                 print("🔍 [DEBUG] Calling search_web_plagiarism for Document 2...")
                 online_results_doc2 = search_web_plagiarism(text2, api_key, cx)
                 print(f"🔍 [DEBUG] Online Results for Doc 2: {len(online_results_doc2)}")

@@ -4,12 +4,15 @@ import firebase_admin
 from firebase_admin import credentials
 import secrets
 import os
-
+from dotenv import load_dotenv 
 
 def create_app():
     app = Flask(__name__)
     app.secret_key = secrets.token_hex(32)
  
+    # Load environment variables
+    load_dotenv()
+
     cred_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "firebase_credentials.json")
     if not os.path.exists(cred_path):
         raise FileNotFoundError(f"Credentials file not found at: {cred_path}")
