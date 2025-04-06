@@ -1,7 +1,7 @@
 services:
   - type: web
-    name: nlp-ai-dashboard
-    env: python
+    name: nlp-app
+    runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn AI_Tools_Flask_Dashboard.app:app
     plan: free
