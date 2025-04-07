@@ -10,7 +10,7 @@ nlp = spacy.load("en_core_web_sm")
 
 # Load model
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "training", "bert-metaphor-token-model")
+MODEL_PATH = "AI_Tools_Flask_Dashboard/training/bert-metaphor-token-model"
 tokenizer = BertTokenizerFast.from_pretrained(MODEL_PATH, local_files_only=True)
 model = BertForTokenClassification.from_pretrained(MODEL_PATH, local_files_only=True)
 model.eval()
