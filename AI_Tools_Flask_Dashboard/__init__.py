@@ -43,7 +43,8 @@ def create_app():
         print("⚠️ WARNING: System clock might be out of sync. This could cause Firebase JWT errors.")
 
     # Initialize Firebase Admin SDK (Realtime DB only)
-    cred_path = os.path.join(base_dir, "config", "firebase_credentials.json")
+    cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH", os.path.join(base_dir, "config", "firebase_credentials.json"))
+
     if not os.path.exists(cred_path):
         raise FileNotFoundError(f"Credentials file not found at: {cred_path}")
 
