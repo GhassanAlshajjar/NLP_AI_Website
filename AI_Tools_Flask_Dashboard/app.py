@@ -20,8 +20,9 @@ load_dotenv()
 
 def download_and_extract_model():
     model_url = os.getenv("MODEL_URL")
-    model_dir = "training"
+    target_dir = os.path.join("AI_Tools_Flask_Dashboard")
     zip_path = "model.zip"
+    model_dir = os.path.join(target_dir, "training")
     os.makedirs(model_dir, exist_ok=True)
 
     expected_file = os.path.join(model_dir, "model.pkl")
@@ -42,7 +43,7 @@ def download_and_extract_model():
         if zipfile.is_zipfile(zip_path):
             print("✅ Download complete. Extracting...")
             with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                zip_ref.extractall(".")
+                zip_ref.extractall(target_dir)  # 👈 Extract into AI_Tools_Flask_Dashboard/
             print("✅ Extraction complete.")
             os.remove(zip_path)
         else:
