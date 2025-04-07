@@ -20,7 +20,7 @@ load_dotenv()
 
 def download_and_extract_model():
     model_url = os.getenv("MODEL_URL")
-    target_dir = os.path.join("AI_Tools_Flask_Dashboard")
+    target_dir = os.path.dirname(__file__)
     zip_path = "model.zip"
     model_dir = os.path.join(target_dir, "training")
     os.makedirs(model_dir, exist_ok=True)
