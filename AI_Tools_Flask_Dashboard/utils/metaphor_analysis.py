@@ -15,7 +15,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 @lru_cache()
 def load_model():
-    model_path = "training/bert-metaphor-token-model"
+    model_path = os.path.join(BASE_DIR, "training", "bert-metaphor-token-model")
+
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model path not found: {model_path}")
+
     tokenizer = BertTokenizerFast.from_pretrained(model_path, local_files_only=True)
     model = BertForTokenClassification.from_pretrained(model_path, local_files_only=True)
     model.eval()

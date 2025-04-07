@@ -15,7 +15,6 @@ def download_and_extract_model():
     zip_path = "model.zip"
     os.makedirs(model_dir, exist_ok=True)
 
-    # Check if model file already exists (adjust this check as needed)
     expected_file = os.path.join(model_dir, "model.pkl")
     if not os.path.exists(expected_file):
         print("📥 Downloading model.zip from Google Drive...")
@@ -31,7 +30,7 @@ def download_and_extract_model():
 
             print("✅ Download complete. Extracting...")
             with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                zip_ref.extractall(model_dir)
+                zip_ref.extractall(".")
 
             print("✅ Extraction complete.")
             os.remove(zip_path)
