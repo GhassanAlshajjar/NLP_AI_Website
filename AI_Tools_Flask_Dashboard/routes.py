@@ -1,12 +1,12 @@
-from firebase_admin import auth
 from flask import session
-import uuid, tempfile
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session
 from firebase_admin import auth, db
 import cloudinary.uploader
 import datetime
+import traceback
 import re
 import os
+import requests
 import nltk
 import math
 from AI_Tools_Flask_Dashboard.utils.document_analysis import compare_documents
@@ -359,25 +359,47 @@ def login():
             return render_template("login.html", page_title="Login")
 
         try:
-            user = auth.get_user_by_email(email)
-            user_ref = db.reference(f"users/{user.uid}")
-            user_data = user_ref.get()
+            # Firebase REST API login
+            api_key = os.getenv("FIREBASE_WEB_API_KEY")
+            auth_url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}"
+            payload = {
+                "email": email,
+                "password": password,
+                "returnSecureToken": True
+            }
+            response = requests.post(auth_url, json=payload)
+            response.raise_for_status()
+            result = response.json()
 
-            session['user_id'] = user.uid
-            session['email'] = user.email
-            session['username'] = user_data.get('username', 'Unknown')
+            uid = result.get("localId")
+
+            # Realtime DB data
+            user_ref = db.reference(f"users/{uid}")
+            user_data = user_ref.get() or {}
+
+            # Save to session
+            session["user_id"] = uid
+            session["email"] = email
+            session["username"] = user_data.get("username", "Unknown")
             session.permanent = True
 
             flash("Logged in successfully.", "success")
             return redirect(url_for("routes.home"))
 
-        except auth.UserNotFoundError:
-            flash("No account found with this email.", "danger")
+        except requests.exceptions.HTTPError as e:
+            print("🔥 HTTPError occurred")
+            print("🔥 Status code:", e.response.status_code)
+            print("🔥 Full response:", e.response.text)
+            error_data = e.response.json()
+            error_msg = error_data.get("error", {}).get("message", "Authentication failed.")
+            flash(f"Login failed: {error_msg}", "danger")
+
         except Exception as e:
+            print("💥 General Exception during login:")
+            traceback.print_exc()
             flash(f"An error occurred: {str(e)}", "danger")
 
     return render_template("login.html", page_title="Login")
-
 
 
 @routes.route("/signup", methods=["GET", "POST"])
@@ -397,17 +419,39 @@ def signup():
             return render_template("signup.html", page_title="Sign Up")
 
         try:
-            user = auth.create_user(email=email, password=password)
-            ref = db.reference(f"users/{user.uid}")
-            ref.set({
+            api_key = os.getenv("FIREBASE_WEB_API_KEY")
+            url = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={api_key}"
+            payload = {
+                "email": email,
+                "password": password,
+                "returnSecureToken": True
+            }
+
+            response = requests.post(url, json=payload)
+            response.raise_for_status()
+            result = response.json()
+
+            # Store additional user data in Realtime DB
+            uid = result["localId"]
+            db.reference(f"users/{uid}").set({
                 "email": email,
                 "username": username
             })
+
             flash("Account created successfully. Please log in.", "success")
             return redirect(url_for("routes.login"))
-        except auth.EmailAlreadyExistsError:
-            flash("An account with this email already exists.", "danger")
+
+        except requests.exceptions.HTTPError as e:
+            print("🔥 HTTPError occurred")
+            print("🔥 Status code:", e.response.status_code)
+            print("🔥 Full response:", e.response.text)
+            error_data = e.response.json()
+            error_msg = error_data.get("error", {}).get("message", "Signup failed.")
+            flash(f"Signup failed: {error_msg}", "danger")
+
         except Exception as e:
+            print("💥 General Exception during signup:")
+            traceback.print_exc()
             flash(f"An error occurred during signup: {str(e)}", "danger")
 
     return render_template("signup.html", page_title="Sign Up")
@@ -419,7 +463,6 @@ def logout():
     session.pop('email', None)
     session.pop('username', None)
     session.permanent = False
-    flash("Logged out successfully.", "success")
     return redirect(url_for("routes.home"))
 
 @routes.route("/profile", methods=["GET", "POST"])
@@ -437,7 +480,6 @@ def profile():
         email = request.form.get("email", user_data.get("email", ""))
 
         try:
-            # Update only changed fields, preserving existing data
             user_update_data = {
                 "email": email,
                 "username": username,
@@ -454,6 +496,3 @@ def profile():
             flash(f"An error occurred: {str(e)}", "danger")
 
     return render_template("profile.html", page_title="Profile", user_data=user_data)
-
-
-
