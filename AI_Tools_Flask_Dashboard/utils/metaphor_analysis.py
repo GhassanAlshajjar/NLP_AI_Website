@@ -4,16 +4,23 @@ import nltk
 import spacy
 from transformers import BertTokenizerFast, BertForTokenClassification
 from nltk.tokenize import sent_tokenize
+from functools import lru_cache
+
 
 nltk.download("punkt")
 nlp = spacy.load("en_core_web_sm")
 
 # Load model
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = "AI_Tools_Flask_Dashboard/training/bert-metaphor-token-model"
-tokenizer = BertTokenizerFast.from_pretrained(MODEL_PATH, local_files_only=True)
-model = BertForTokenClassification.from_pretrained(MODEL_PATH, local_files_only=True)
-model.eval()
+
+@lru_cache()
+def load_model():
+    model_path = "training/bert-metaphor-token-model"
+    tokenizer = BertTokenizerFast.from_pretrained(model_path, local_files_only=True)
+    model = BertForTokenClassification.from_pretrained(model_path, local_files_only=True)
+    model.eval()
+    return tokenizer, model
+
 
 id_to_label = {0: "O", 1: "B-MET", 2: "B-LIT"}
 
@@ -65,6 +72,7 @@ def detect_metaphor_spans(text, start=0, per_page=25):
     results = []
     sentences = sent_tokenize(text)
     selected = sentences[start:start+per_page]
+    tokenizer, model = load_model()
 
     for sentence in selected:
         inputs = tokenizer(sentence, return_tensors="pt", truncation=True)
