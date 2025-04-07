@@ -7,7 +7,14 @@ import os
 from dotenv import load_dotenv 
 
 def create_app():
-    app = Flask(__name__)
+    base_dir = os.path.abspath(os.path.dirname(__file__))
+
+    app = Flask(
+        __name__,
+        static_folder=os.path.join(base_dir, "static"),
+        template_folder=os.path.join(base_dir, "templates")
+    )
+    
     app.secret_key = secrets.token_hex(32)
  
     # Load environment variables
