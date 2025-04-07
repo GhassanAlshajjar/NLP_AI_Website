@@ -9,17 +9,17 @@ import re
 import os
 import nltk
 import math
-from utils.document_analysis import compare_documents
-from utils.web_plagiarism_checker import search_web_plagiarism
-from utils.document_analysis_visualization import (
+from AI_Tools_Flask_Dashboard.utils.document_analysis import compare_documents
+from AI_Tools_Flask_Dashboard.utils.web_plagiarism_checker import search_web_plagiarism
+from AI_Tools_Flask_Dashboard.utils.document_analysis_visualization import (
     generate_word_cloud_base64,
     generate_similarity_pie_chart_base64,
     generate_word_frequency_chart,
     generate_sentence_similarity_chart_base64
 )
-from utils.document_analysis import extract_text
-from utils.plagiarism_checker import calculate_plagiarism_score
-from utils.metaphor_analysis import detect_metaphor_spans
+from AI_Tools_Flask_Dashboard.utils.document_analysis import extract_text
+from AI_Tools_Flask_Dashboard.utils.plagiarism_checker import calculate_plagiarism_score
+from AI_Tools_Flask_Dashboard.utils.metaphor_analysis import detect_metaphor_spans
 
 routes = Blueprint('routes', __name__)
 

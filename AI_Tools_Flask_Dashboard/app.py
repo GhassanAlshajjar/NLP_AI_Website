@@ -1,4 +1,3 @@
-import sys
 import os
 import requests
 import zipfile
@@ -10,8 +9,6 @@ import cloudinary.uploader
 import cloudinary.api
 
 load_dotenv()
-
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 def download_and_extract_model():
     model_dir = "training"
@@ -44,7 +41,6 @@ def download_and_extract_model():
     else:
         print("✅ Model already exists. No download needed.")
 
-load_dotenv()
 download_and_extract_model()
 app = create_app()
 
