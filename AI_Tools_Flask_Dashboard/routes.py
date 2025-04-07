@@ -298,11 +298,11 @@ def document_analysis():
             print("⚠️ [DEBUG] No plagiarism results found for Doc 2")
 
         
-        if "user_id" not in session:
-            flash("You need to log in to upload files.", "danger")
-            return redirect(url_for("routes.login"))
+        # if "user_id" not in session:
+        #     flash("You need to log in to upload files.", "danger")
+        #     return redirect(url_for("routes.login"))
 
-        user_id = session["user_id"]  # Get current user ID
+        # user_id = session["user_id"]  # Get current user ID
 
         background_style = "background-color: #DCDCDC; padding: 20px; border-radius: 10px;"
 
