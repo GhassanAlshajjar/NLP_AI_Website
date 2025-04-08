@@ -61,20 +61,9 @@ def download_and_extract_model():
         os.remove(zip_path)
 
         print("✅ Extraction complete.")
-        debug_directory_structure(base_dir)
 
     except Exception as e:
         print(f"❌ Error downloading or extracting model: {e}")
-
-def debug_directory_structure(base_dir):
-    print("\n📂 Directory structure after extraction:")
-    for root, dirs, files in os.walk(base_dir):
-        level = root.replace(base_dir, "").count(os.sep)
-        indent = " " * 4 * level
-        print(f"{indent}📁 {os.path.basename(root)}/")
-        subindent = " " * 4 * (level + 1)
-        for f in files:
-            print(f"{subindent}📄 {f}")
 
 def create_app():
     base_dir = os.path.abspath(os.path.dirname(__file__))
@@ -91,7 +80,7 @@ def create_app():
     app.secret_key = secrets.token_hex(32)
 
     # Download model at startup
-    download_and_extract_model()
+    # download_and_extract_model()
 
     # Optional: Warn if time is off
     if not is_time_synced():
