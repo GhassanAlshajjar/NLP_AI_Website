@@ -48,6 +48,11 @@ def upload_model():
         with open(output_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
+            f.flush()
+        os.sync()  # For safety
+
+        # Add extra ZIP check log
+        logs.append(f"📦 Verifying zip file now: {output_path}")
 
         with open(output_path, "rb") as f:
             header = f.read(4)
@@ -81,3 +86,32 @@ def upload_model():
     except Exception as e:
         logs.append(f"❌ Exception: {str(e)}")
         return jsonify({"error": str(e), "logs": logs})
+    
+@debug.route("/model-ready", methods=["GET"])
+def model_ready():
+    model_dir = "/mnt/model/training/bert-metaphor-token-model"
+    expected_files = [
+        "config.json", "model.safetensors", "tokenizer_config.json",
+        "tokenizer.json", "vocab.txt", "special_tokens_map.json"
+    ]
+    
+    logs = []
+    if not os.path.exists(model_dir):
+        logs.append("❌ Model folder not found.")
+        return jsonify({"ready": False, "logs": logs})
+
+    found = os.listdir(model_dir)
+    missing = [f for f in expected_files if f not in found]
+
+    if missing:
+        logs.append(f"❌ Missing files: {missing}")
+    else:
+        logs.append("✅ All required files found.")
+
+    return jsonify({
+        "ready": len(missing) == 0,
+        "found": found,
+        "missing": missing,
+        "logs": logs
+    })
+
