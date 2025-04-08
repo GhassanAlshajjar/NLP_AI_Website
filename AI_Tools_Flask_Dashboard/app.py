@@ -20,12 +20,12 @@ load_dotenv()
 
 def download_and_extract_model():
     model_url = os.getenv("MODEL_URL")
-    target_dir = os.path.dirname(__file__)
-    zip_path = "model.zip"
-    model_dir = os.path.join(target_dir, "training")
-    os.makedirs(model_dir, exist_ok=True)
+    base_dir = os.path.abspath(os.path.dirname(__file__))  # This is AI_Tools_Flask_Dashboard/
+    zip_path = os.path.join(base_dir, "model.zip")
+    extract_path = os.path.join(base_dir, "training")
+    os.makedirs(extract_path, exist_ok=True)
 
-    expected_file = os.path.join(model_dir, "model.pkl")
+    expected_file = os.path.join(extract_path, "bert-metaphor-token-model", "config.json")
     if os.path.exists(expected_file):
         print("✅ Model already exists. No download needed.")
         return
@@ -37,19 +37,19 @@ def download_and_extract_model():
 
         with open(zip_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
+                f.write(chunk)
 
         if zipfile.is_zipfile(zip_path):
             print("✅ Download complete. Extracting...")
             with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                zip_ref.extractall(target_dir)  # 👈 Extract into AI_Tools_Flask_Dashboard/
+                zip_ref.extractall(extract_path)
             print("✅ Extraction complete.")
-            os.remove(zip_path)
         else:
             print("❌ File is not a valid ZIP archive. Possibly an HTML response.")
             with open(zip_path, "r", encoding="utf-8", errors="ignore") as f:
                 print("📄 File preview:\n", f.read(300))
+
+        os.remove(zip_path)
 
     except Exception as e:
         print(f"❌ Error downloading or extracting model: {e}")

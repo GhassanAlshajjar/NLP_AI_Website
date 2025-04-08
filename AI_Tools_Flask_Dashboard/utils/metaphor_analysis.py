@@ -15,7 +15,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 @lru_cache()
 def load_model():
-    model_path = os.path.join(BASE_DIR, "training", "bert-metaphor-token-model")
+    model_path = os.path.join(BASE_DIR, "AI_Tools_Flask_Dashboard", "training", "bert-metaphor-token-model")
 
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model path not found: {model_path}")

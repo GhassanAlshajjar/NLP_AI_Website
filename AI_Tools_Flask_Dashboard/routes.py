@@ -9,6 +9,9 @@ import os
 import requests
 import nltk
 import math
+import uuid
+import tempfile
+import json
 from AI_Tools_Flask_Dashboard.utils.document_analysis import compare_documents
 from AI_Tools_Flask_Dashboard.utils.web_plagiarism_checker import search_web_plagiarism
 from AI_Tools_Flask_Dashboard.utils.document_analysis_visualization import (
@@ -49,9 +52,6 @@ def is_valid_file(file):
 
 @routes.route("/metaphor-detection", methods=["GET", "POST"])
 def metaphor_detection():
-    import uuid
-    import tempfile
-    import json
 
     breadcrumb = "Home / Metaphor Detection"
     text_content = ""
