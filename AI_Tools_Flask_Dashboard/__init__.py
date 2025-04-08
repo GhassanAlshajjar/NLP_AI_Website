@@ -29,7 +29,7 @@ def is_time_synced():
 def download_and_extract_model():
     base_dir = os.path.abspath(os.path.dirname(__file__))
     zip_path = os.path.join(base_dir, "model.zip")
-    extract_path = os.path.join(base_dir, "training")
+    extract_path = os.path.join(base_dir)
     os.makedirs(extract_path, exist_ok=True)
 
     model_url = os.getenv("MODEL_URL")
