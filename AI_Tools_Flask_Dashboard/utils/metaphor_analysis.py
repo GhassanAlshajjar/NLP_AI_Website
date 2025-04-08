@@ -16,7 +16,7 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 @lru_cache()
 def load_model():
     model_path = (
-        "/mnt/model/bert-metaphor-token-model"
+        "/mnt/model/training/bert-metaphor-token-model"
         if os.environ.get("RENDER") == "true"
         else os.path.join(BASE_DIR, "bert-metaphor-token-model")
     )

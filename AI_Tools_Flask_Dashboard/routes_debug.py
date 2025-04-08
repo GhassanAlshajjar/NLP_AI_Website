@@ -1,5 +1,6 @@
 import os, zipfile, gdown
 from flask import Blueprint, jsonify
+import requests
 
 debug = Blueprint("debug", __name__)
 
@@ -17,7 +18,7 @@ def check_disk():
 
 @debug.route("/upload-model", methods=["GET"])
 def upload_model():
-    file_id = "1cV939DtFIKrvGyzb-dcI8plD40sWgWCv"
+    model_url = "https://firebasestorage.googleapis.com/v0/b/nlp-website-29590.firebasestorage.app/o/Model.zip?alt=media&token=b9fc4df0-d11a-42f8-af9a-9ebce2a9de30"
     output_path = "/mnt/model/model.zip"
     extract_path = "/mnt/model"
 
@@ -26,7 +27,12 @@ def upload_model():
         return jsonify({"message": "✅ Model already exists. Skipping download."})
 
     try:
-        gdown.download(id=file_id, output=output_path, quiet=False)
+        response = requests.get(model_url, stream=True)
+        response.raise_for_status()
+
+        with open(output_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
 
         if zipfile.is_zipfile(output_path):
             with zipfile.ZipFile(output_path, "r") as zip_ref:
@@ -34,6 +40,8 @@ def upload_model():
             os.remove(output_path)
             return jsonify({"message": "✅ Model downloaded and extracted."})
         else:
-            return jsonify({"error": "❌ Not a valid ZIP."})
+            return jsonify({"error": "❌ Not a valid ZIP (check content of Firebase file)."})
+
     except Exception as e:
         return jsonify({"error": str(e)})
+
