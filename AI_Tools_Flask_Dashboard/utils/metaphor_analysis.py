@@ -11,7 +11,7 @@ nltk.download("punkt")
 nlp = spacy.load("en_core_web_sm")
 
 # Load model
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 @lru_cache()
 def load_model():
