@@ -21,9 +21,12 @@ def load_model():
         else os.path.join(BASE_DIR, "bert-metaphor-token-model")
     )
 
+    print("🔍 Looking for model at:", model_path)
     if not os.path.exists(model_path):
+        print("❌ Model path not found.")
         raise FileNotFoundError(f"Model path not found: {model_path}")
 
+    print("✅ Loading tokenizer and model from:", model_path)
     tokenizer = BertTokenizerFast.from_pretrained(model_path, local_files_only=True)
     model = BertForTokenClassification.from_pretrained(model_path, local_files_only=True)
     model.eval()
