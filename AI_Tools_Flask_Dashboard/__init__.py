@@ -4,6 +4,8 @@ import firebase_admin
 from firebase_admin import credentials, initialize_app, db
 import secrets
 import os
+import zipfile
+import requests
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
@@ -24,6 +26,42 @@ def is_time_synced():
         print(f"⚠️ Time sync check failed: {e}")
         return True  # Don't block app startup
 
+def download_and_extract_model():
+    base_dir = os.path.abspath(os.path.dirname(__file__))
+    zip_path = os.path.join(base_dir, "model.zip")
+    extract_path = os.path.join(base_dir, "training")
+    os.makedirs(extract_path, exist_ok=True)
+
+    model_url = os.getenv("MODEL_URL")
+    expected_file = os.path.join(extract_path, "bert-metaphor-token-model", "config.json")
+    if os.path.exists(expected_file):
+        print("✅ Model already exists. No download needed.")
+        return
+
+    print(f"📥 Downloading model.zip from: {model_url}")
+    try:
+        response = requests.get(model_url, stream=True)
+        response.raise_for_status()
+
+        with open(zip_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+        if zipfile.is_zipfile(zip_path):
+            print("✅ Download complete. Extracting...")
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                zip_ref.extractall(extract_path)
+            print("✅ Extraction complete.")
+        else:
+            print("❌ Not a valid ZIP. Possibly an HTML error.")
+            with open(zip_path, "r", encoding="utf-8", errors="ignore") as f:
+                print("📄 File preview:\n", f.read(300))
+
+        os.remove(zip_path)
+
+    except Exception as e:
+        print(f"❌ Error downloading or extracting model: {e}")
+
 def create_app():
     base_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -33,10 +71,13 @@ def create_app():
         template_folder=os.path.join(base_dir, "templates")
     )
 
-    app.secret_key = secrets.token_hex(32)
-
     # Load environment variables
     load_dotenv()
+    
+    app.secret_key = secrets.token_hex(32)
+
+    # Download model at startup
+    download_and_extract_model()
 
     # Optional: Warn if time is off
     if not is_time_synced():
