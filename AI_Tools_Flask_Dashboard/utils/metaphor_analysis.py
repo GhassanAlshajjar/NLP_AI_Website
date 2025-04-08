@@ -15,8 +15,11 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 @lru_cache()
 def load_model():
-    model_path = os.path.join(BASE_DIR, "bert-metaphor-token-model")
-    print("Available dirs in BASE_DIR/training:", os.listdir(os.path.join(BASE_DIR, "training")))
+    model_path = (
+        "/mnt/model/bert-metaphor-token-model"
+        if os.environ.get("RENDER") == "true"
+        else os.path.join(BASE_DIR, "bert-metaphor-token-model")
+    )
 
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model path not found: {model_path}")
