@@ -1,5 +1,5 @@
 from flask import session
-from flask import Blueprint, render_template, redirect, url_for, request, flash, session
+from flask import Blueprint, render_template, redirect, url_for, request, flash
 from firebase_admin import auth, db
 import cloudinary.uploader
 import datetime

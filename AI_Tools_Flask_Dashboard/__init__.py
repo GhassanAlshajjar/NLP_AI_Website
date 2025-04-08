@@ -8,6 +8,7 @@ import zipfile
 import requests
 from datetime import datetime, timezone
 from dotenv import load_dotenv
+from .routes_debug import debug
 
 def is_time_synced():
     try:
@@ -110,5 +111,6 @@ def create_app():
 
     # Register routes
     app.register_blueprint(routes)
+    app.register_blueprint(debug)
 
     return app
